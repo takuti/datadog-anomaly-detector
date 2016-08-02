@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import math
 
 
 def LevinsonDurbin(r, lpcOrder):
@@ -35,25 +34,58 @@ def LevinsonDurbin(r, lpcOrder):
     return a, e[-1]
 
 
-class _SDAR_1Dim(object):
-    def __init__(self, r, order):
-        self._r = r
-        self._mu = np.random.random()
-        self._sigma = np.random.random()
-        self._order = order
-        self._c = np.zeros(self._order + 1)
+class SDAR_1D:
 
-    def update(self, x, term):
-        assert len(term) >= self._order, "term must be order or more"
-        term = np.array(term)
-        self._mu = (1 - self._r) * self._mu + self._r * x
-        for i in range(1, self._order):
-            self._c[i] = (1 - self._r) * self._c[i] + self._r * (x - self._mu) * (term[-i] - self._mu)
-        self._c[0] = (1 - self._r) * self._c[0] + self._r * (x - self._mu) * (x - self._mu)
-        what, e = LevinsonDurbin(self._c, self._order)
-        xhat = np.dot(-what[1:], (term[::-1] - self._mu)) + self._mu
-        self._sigma = (1 - self._r) * self._sigma + self._r * (x - xhat) * (x - xhat)
-        return -math.log(math.exp(-0.5 * (x - xhat)**2 / self._sigma) / ((2 * math.pi)**0.5 * self._sigma**0.5)), xhat
+    def __init__(self, r, order):
+        """Train a AR model by using the SDAR algorithm (1d points only).
+
+        Args:
+            r (float): Forgetting parameter.
+            order (int): Order of the AR model (i.e. k in the paper).
+
+        """
+
+        self.r = r
+        self.order = order
+
+        # initialize the parameters
+        self.mu = np.random.random()
+        self.sigma = np.random.random()
+        self.c = np.zeros(self.order + 1)
+
+    def update(self, x, xs):
+        """Update the current AR model.
+
+        Args:
+            x (float): A new 1d point (t).
+            xs (numpy array): `k` past points (..., t-k, ..., t-1).
+
+        Returns:
+            (float, float): (Logloss-based score for x, Estimated value of x)
+
+        """
+        assert xs.size >= self.order, 'xs must be order or more'
+
+        # estimate mu
+        self.mu = (1 - self.r) * self.mu + self.r * x
+
+        # estimate c (Yule-Walker equation)
+        self.c[0] = (1 - self.r) * self.c[0] + self.r * (x - self.mu) * (x - self.mu)  # c_0: x_t = x_{t-j}
+        self.c[1:self.order] = (1 - self.r) * self.c[1:self.order] + self.r * (x - self.mu) * (xs[::-1][:(self.order - 1)] - self.mu)
+
+        # solve the Yule-Walker equation
+        a, e = LevinsonDurbin(self.c, self.order)
+
+        # estimate x
+        x_hat = np.dot(-a[1:], (xs[::-1] - self.mu)) + self.mu
+
+        # estimate sigma
+        self.sigma = (1 - self.r) * self.sigma + self.r * (x - x_hat) * (x - x_hat)
+
+        # compute the probability density function
+        p = np.exp(-0.5 * (x - x_hat)**2 / self.sigma) / ((2 * np.pi)**0.5 * self.sigma**0.5)
+
+        return -np.log(p), x_hat
 
 
 class ChangeFinder:
@@ -77,11 +109,11 @@ class ChangeFinder:
 
         self.xs = np.array([])
         self.scores_outlier = np.array([])
-        self.sdar_outlier = _SDAR_1Dim(r, self.order)
+        self.sdar_outlier = SDAR_1D(r, self.order)
 
         self.ys = np.array([])
         self.scores_change = np.array([])
-        self.sdar_change = _SDAR_1Dim(r, self.order)
+        self.sdar_change = SDAR_1D(r, self.order)
 
     def update(self, x):
         """Update AR models based on 1d input x.
