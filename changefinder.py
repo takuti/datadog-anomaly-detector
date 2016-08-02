@@ -56,49 +56,98 @@ class _SDAR_1Dim(object):
         return -math.log(math.exp(-0.5 * (x - xhat)**2 / self._sigma) / ((2 * math.pi)**0.5 * self._sigma**0.5)), xhat
 
 
-class _ChangeFinderAbstract(object):
-    def _add_one(self, one, ts, size):
-        ts.append(one)
-        if len(ts) == size + 1:
-            ts.pop(0)
+class ChangeFinder:
 
-    def _smoothing(self, ts):
-        return sum(ts) / float(len(ts))
-
-
-class ChangeFinder(_ChangeFinderAbstract):
     def __init__(self, r=0.5, order=1, smooth=7):
-        assert order > 0, "order must be 1 or more."
-        assert smooth > 2, "term must be 3 or more."
-        self._smooth = smooth
-        self._smooth2 = int(round(self._smooth / 2.0))
-        self._order = order
-        self._r = r
-        self._ts = []
-        self._first_scores = []
-        self._smoothed_scores = []
-        self._second_scores = []
-        self._sdar_first = _SDAR_1Dim(r, self._order)
-        self._sdar_second = _SDAR_1Dim(r, self._order)
+        """ChangeFinder.
+
+        Args:
+            r (float): Forgetting parameter.
+            order (int): Order of the AR model (i.e. k in the paper).
+            smooth (int): Window size for the simple moving average (i.e. T).
+
+        """
+
+        assert order > 0, 'order must be 1 or more.'
+        assert smooth > 2, 'term must be 3 or more.'
+
+        self.r = r
+        self.order = order
+        self.smooth = smooth
+
+        self.xs = np.array([])
+        self.scores_outlier = np.array([])
+        self.sdar_outlier = _SDAR_1Dim(r, self.order)
+
+        self.ys = np.array([])
+        self.scores_change = np.array([])
+        self.sdar_change = _SDAR_1Dim(r, self.order)
 
     def update(self, x):
-        score = 0
-        predict = x
-        predict2 = 0
-        if len(self._ts) == self._order:  # 第一段学習
-            score, predict = self._sdar_first.update(x, self._ts)
-            self._add_one(score, self._first_scores, self._smooth)
-        self._add_one(x, self._ts, self._order)
-        second_target = None
-        if len(self._first_scores) == self._smooth:  # 平滑化
-            second_target = self._smoothing(self._first_scores)
-        if second_target and len(self._smoothed_scores) == self._order:  # 第二段学習
-            score, predict2 = self._sdar_second.update(second_target, self._smoothed_scores)
-            self._add_one(score,
-                          self._second_scores, self._smooth2)
-        if second_target:
-            self._add_one(second_target, self._smoothed_scores, self._order)
-        if len(self._second_scores) == self._smooth2:
-            return self._smoothing(self._second_scores), predict
+        """Update AR models based on 1d input x.
+
+        Args:
+            x (float): 1d input value.
+
+        Returns:
+            float: (Smoothed) change point score for the input value.
+
+        """
+
+        # Stage 1: Outlier Detection (SDAR #1)
+        # need to wait until at least `order` (k) points are arrived
+        if self.xs.size == self.order:
+            score, predict = self.sdar_outlier.update(x, self.xs)
+            self.scores_outlier = self.add_one(score, self.scores_outlier, self.smooth)
+
+        self.xs = self.add_one(x, self.xs, self.order)
+
+        # Smoothing when we have enough (>T) first scores
+        if self.scores_outlier.size == self.smooth:
+            y = self.smoothing(self.scores_outlier)
+
+            # Stage 2: Change Point Detection (SDAR #2)
+            # need to wait until at least `order` (k) points are arrived
+            if self.ys.size == self.order:
+                score, predict = self.sdar_change.update(y, self.ys)
+                self.scores_change = self.add_one(score, self.scores_change, self.smooth)
+
+            self.ys = self.add_one(y, self.ys, self.order)
+
+        # Smoothing when we have enough (>T) second scores
+        if self.scores_change.size == self.smooth:
+            return self.smoothing(self.scores_change)
         else:
-            return 0.0, predict
+            return 0.0
+
+    def add_one(self, x, window, window_size):
+        """Insert a sample x into a fix-sized window.
+
+        Args:
+            x (float): A sample value.
+            window (numpy array): Fixed sized window.
+            window_size (int): Maximum size of the window.
+
+        Returns:
+            numpy array: An updated window.
+
+        """
+        window = np.append(window, x)
+
+        # delete oldest point
+        if window.size > window_size:
+            window = np.delete(window, 0)
+
+        return window
+
+    def smoothing(self, window):
+        """Return a smoothed value of the current window.
+
+        Args:
+            window (numpy array): Fixed sized window.
+
+        Returns:
+            float: A smoothed value of the given window.
+
+        """
+        return np.sum(window) / window.size
