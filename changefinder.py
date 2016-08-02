@@ -109,11 +109,11 @@ class ChangeFinder:
 
         self.xs = np.array([])
         self.scores_outlier = np.array([])
-        self.sdar_outlier = SDAR_1D(r, self.order)
+        self.sdar_outlier = SDAR_1D(r, order)
 
         self.ys = np.array([])
         self.scores_change = np.array([])
-        self.sdar_change = SDAR_1D(r, self.order)
+        self.sdar_change = SDAR_1D(r, order)
 
     def update(self, x):
         """Update AR models based on 1d input x.
