@@ -61,7 +61,7 @@ class SDAR_1D:
             xs (numpy array): `k` past points (..., t-k, ..., t-1).
 
         Returns:
-            (float, float): (Logloss-based score for x, Estimated value of x)
+            float: Logloss for x.
 
         """
         assert xs.size >= self.order, 'xs must be order or more'
@@ -83,9 +83,9 @@ class SDAR_1D:
         self.sigma = (1 - self.r) * self.sigma + self.r * (x - x_hat) * (x - x_hat)
 
         # compute the probability density function
-        p = np.exp(-0.5 * (x - x_hat)**2 / self.sigma) / ((2 * np.pi)**0.5 * self.sigma**0.5)
+        p = np.exp(-0.5 * ((x - x_hat)**2) / self.sigma) / (np.sqrt(2 * np.pi) * np.sqrt(np.abs(self.sigma)))
 
-        return -np.log(p), x_hat
+        return -np.log(p)
 
 
 class ChangeFinder:
@@ -131,7 +131,7 @@ class ChangeFinder:
         # Stage 1: Outlier Detection (SDAR #1)
         # need to wait until at least `order` (k) points are arrived
         if self.xs.size == self.order:
-            logloss_x, pred_x = self.sdar_outlier.update(x, self.xs)
+            logloss_x = self.sdar_outlier.update(x, self.xs)
             self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.smooth)
 
         self.xs = self.add_one(x, self.xs, self.order)
@@ -143,7 +143,7 @@ class ChangeFinder:
             # Stage 2: Change Point Detection (SDAR #2)
             # need to wait until at least `order` (k) points are arrived
             if self.ys.size == self.order:
-                logloss_y, pred_y = self.sdar_change.update(y, self.ys)
+                logloss_y = self.sdar_change.update(y, self.ys)
                 self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.smooth)
 
             self.ys = self.add_one(y, self.ys, self.order)
