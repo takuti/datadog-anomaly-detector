@@ -122,7 +122,7 @@ class ChangeFinder:
             x (float): 1d input value.
 
         Returns:
-            float: (Smoothed) change point score for the input value.
+            (float, float): (Smoothed) {outlier, change point} score for the input value.
 
         """
 
@@ -146,11 +146,8 @@ class ChangeFinder:
 
             self.ys = self.add_one(y, self.ys, self.order)
 
-        # Smoothing when we have enough (>T) second scores
-        if self.scores_change.size == self.smooth:
-            return self.smoothing(self.scores_change)
-        else:
-            return 0.0
+        # Return smoothed {outlier, change point} scores
+        return self.smoothing(self.scores_outlier), self.smoothing(self.scores_change)
 
     def add_one(self, x, window, window_size):
         """Insert a sample x into a fix-sized window.
@@ -182,4 +179,4 @@ class ChangeFinder:
             float: A smoothed value of the given window.
 
         """
-        return np.sum(window) / window.size
+        return 0.0 if window.size == 0 else np.sum(window) / window.size
