@@ -112,7 +112,7 @@ class ChangeFinder:
         self.sdar_outlier = SDAR_1D(r, order)
 
         self.ys = np.array([])
-        self.scores_change = np.array([])
+        self.logloss_ys = np.array([])
         self.sdar_change = SDAR_1D(r, order)
 
     def update(self, x):
@@ -122,15 +122,17 @@ class ChangeFinder:
             x (float): 1d input value.
 
         Returns:
-            (float, float): (Smoothed) {outlier, change point} score for the input value.
+            (float, float): (Outlier score, Change point score).
 
         """
+
+        logloss_x = 0.0
 
         # Stage 1: Outlier Detection (SDAR #1)
         # need to wait until at least `order` (k) points are arrived
         if self.xs.size == self.order:
-            score, predict = self.sdar_outlier.update(x, self.xs)
-            self.scores_outlier = self.add_one(score, self.scores_outlier, self.smooth)
+            logloss_x, pred_x = self.sdar_outlier.update(x, self.xs)
+            self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.smooth)
 
         self.xs = self.add_one(x, self.xs, self.order)
 
@@ -141,13 +143,13 @@ class ChangeFinder:
             # Stage 2: Change Point Detection (SDAR #2)
             # need to wait until at least `order` (k) points are arrived
             if self.ys.size == self.order:
-                score, predict = self.sdar_change.update(y, self.ys)
-                self.scores_change = self.add_one(score, self.scores_change, self.smooth)
+                logloss_y, pred_y = self.sdar_change.update(y, self.ys)
+                self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.smooth)
 
             self.ys = self.add_one(y, self.ys, self.order)
 
-        # Return smoothed {outlier, change point} scores
-        return self.smoothing(self.scores_outlier), self.smoothing(self.scores_change)
+        # Return outlier and change point scores
+        return logloss_x, self.smoothing(self.logloss_ys)
 
     def add_one(self, x, window, window_size):
         """Insert a sample x into a fix-sized window.
