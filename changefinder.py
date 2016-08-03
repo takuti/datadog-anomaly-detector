@@ -79,12 +79,12 @@ class ChangeFinder:
         self.order = order
         self.smooth = smooth
 
-        self.xs = np.array([])
-        self.scores_outlier = np.array([])
+        self.xs = np.zeros(order)
+        self.scores_outlier = np.zeros(smooth)
         self.sdar_outlier = SDAR_1D(r, order)
 
-        self.ys = np.array([])
-        self.logloss_ys = np.array([])
+        self.ys = np.zeros(order)
+        self.logloss_ys = np.zeros(smooth)
         self.sdar_change = SDAR_1D(r, order)
 
     def update(self, x):
@@ -98,27 +98,20 @@ class ChangeFinder:
 
         """
 
-        logloss_x = 0.0
-
         # Stage 1: Outlier Detection (SDAR #1)
-        # need to wait until at least `order` (k) points are arrived
-        if self.xs.size == self.order:
-            logloss_x = self.sdar_outlier.update(x, self.xs)
-            self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.smooth)
+        logloss_x = self.sdar_outlier.update(x, self.xs)
+        self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.smooth)
 
         self.xs = self.add_one(x, self.xs, self.order)
 
         # Smoothing when we have enough (>T) first scores
-        if self.scores_outlier.size == self.smooth:
-            y = self.smoothing(self.scores_outlier)
+        y = self.smoothing(self.scores_outlier)
 
-            # Stage 2: Change Point Detection (SDAR #2)
-            # need to wait until at least `order` (k) points are arrived
-            if self.ys.size == self.order:
-                logloss_y = self.sdar_change.update(y, self.ys)
-                self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.smooth)
+        # Stage 2: Change Point Detection (SDAR #2)
+        logloss_y = self.sdar_change.update(y, self.ys)
+        self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.smooth)
 
-            self.ys = self.add_one(y, self.ys, self.order)
+        self.ys = self.add_one(y, self.ys, self.order)
 
         # Return outlier and change point scores
         return logloss_x, self.smoothing(self.logloss_ys)
