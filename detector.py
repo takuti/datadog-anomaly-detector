@@ -26,9 +26,12 @@ class Detector:
 
         sender.setup('changefinder')
 
-        self.query = parser['datadog'].get('query')
+        self.queries = parser['datadog'].get('queries').strip().split('\n')
 
-        self.cf = ChangeFinder(r=0.005, order=1, smooth=10)
+        # create ChangeFinder instances for each query (metric)
+        self.cfs = {}
+        for query in self.queries:
+            self.cfs[query] = ChangeFinder(r=0.01, order=1, smooth=10)
 
         self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
                                    api_key=os.environ['DD_API_KEY'])
@@ -41,34 +44,38 @@ class Detector:
         logger.info('Start running a daemon')
 
         while True:
-            series = self.dd.get_series(self.start, self.end, self.query)
-
-            for d in series:
-                record = {}
-
-                record['raw_value'] = 0.0 if d['raw_value'] is None else d['raw_value']
-
-                # threshold will be around 15
-                s_outlier, s_change = self.cf.update(record['raw_value'])
-
-                record['metric_outlier'] = 'changefinder.outlier.' + d['src_metric']
-                record['score_outlier'] = s_outlier
-
-                record['metric_change'] = 'changefinder.change.' + d['src_metric']
-                record['score_change'] = s_change
-
-                # nb. of digits must be equal to Ruby's unix time
-                record['time'] = int(d['time'] / 1000)
-
-                host = re.match(r'.*?host:(.*)', d['scope']).group(1)
-                record['host'] = host
-
-                event.Event(d['src_metric'], record)
+            for query in self.queries:
+                self.__handle_query(query)
 
             self.start = self.end + 1
             self.end = int(time.time())
 
             time.sleep(self.window_sec)
+
+    def __handle_query(self, query):
+        series = self.dd.get_series(self.start, self.end, query)
+
+        for d in series:
+            record = {}
+
+            record['raw_value'] = 0.0 if d['raw_value'] is None else d['raw_value']
+
+            # threshold will be around 15
+            s_outlier, s_change = self.cfs[query].update(record['raw_value'])
+
+            record['metric_outlier'] = 'changefinder.outlier.' + d['src_metric']
+            record['score_outlier'] = s_outlier
+
+            record['metric_change'] = 'changefinder.change.' + d['src_metric']
+            record['score_change'] = s_change
+
+            # nb. of digits must be equal to Ruby's unix time
+            record['time'] = int(d['time'] / 1000)
+
+            host = re.match(r'.*?host:(.*)', d['scope']).group(1) if d['scope'] != '*' else '*'
+            record['host'] = host
+
+            event.Event(d['src_metric'], record)
 
 
 if __name__ == '__main__':
