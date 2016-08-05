@@ -26,7 +26,6 @@ class Detector:
 
         sender.setup('changefinder')
 
-        self.src_metric = parser['datadog'].get('metric')
         self.query = parser['datadog'].get('query')
 
         self.cf = ChangeFinder(r=0.005, order=1, smooth=10)
@@ -52,10 +51,10 @@ class Detector:
                 # threshold will be around 15
                 s_outlier, s_change = self.cf.update(record['raw_value'])
 
-                record['metric_outlier'] = 'changefinder.outlier.' + self.src_metric
+                record['metric_outlier'] = 'changefinder.outlier.' + d['src_metric']
                 record['score_outlier'] = s_outlier
 
-                record['metric_change'] = 'changefinder.change.' + self.src_metric
+                record['metric_change'] = 'changefinder.change.' + d['src_metric']
                 record['score_change'] = s_change
 
                 # nb. of digits must be equal to Ruby's unix time
@@ -64,7 +63,7 @@ class Detector:
                 host = re.match(r'.*?host:(.*)', d['scope']).group(1)
                 record['host'] = host
 
-                event.Event(self.src_metric, record)
+                event.Event(d['src_metric'], record)
 
             self.start = self.end + 1
             self.end = int(time.time())

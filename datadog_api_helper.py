@@ -24,7 +24,8 @@ class DatadogAPIHelper:
 
         for d in j['series']:
             # p = [ timestamp, value ]
-            series += [{'scope': d['scope'],
+            series += [{'src_metric': d['metric'],
+                        'scope': d['scope'],
                         'time': int(p[0]),
                         'raw_value': p[1]
                         } for p in d['pointlist']]
