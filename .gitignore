@@ -1,1 +1,4 @@
 config/datadog.ini
+
+*.log
+__pycache__
