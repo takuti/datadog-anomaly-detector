@@ -144,7 +144,53 @@ Our scores can be easily connected to Norikra by using [fluent-plugin-norikra](h
 
 allows you to pass the scores both to Norikra and Datadog.
 
-(TODO: Add some examples here.)
+### Example: Anomaly detection and slack notification using Norikra
+
+If you added the above Norikra configuration to the Fluentd `.conf` file, anomaly detection can be easily implemented by adding the following  Norikra query:
+
+```
+SELECT cpu.host, cpu.score_change, disk.raw_value
+FROM system_cpu_idle.win:ext_timed_batch(time * 1000, 10 min) as cpu, system_disk_free.win:ext_timed_batch(time * 1000, 10 min) as disk
+WHERE cpu.time = disk.time
+HAVING disk.raw_value < 1000000000 AND cpu.score_change > 15
+```
+
+The SQL-like syntax is called [EQL](http://esper.sourceforge.net/esper-0.7.5/doc/reference/en/html/EQL.html). In this case, every 10 minutes, Norikra detects the events iff a `raw_value` field in a `system_disk_free` target is greater than 1000000000 and a `score_change` field in a `system_ipu_idle` target is greater than 15 at the same timestamp. 
+
+It should be noted that a `time` filed must be represented in a millisecond range, so `time * 1000` should be used instead of `time` itself, which was used by Fluentd (Ruby's second-ranged unix time).
+
+Here, the detected events can be fetched by Fluentd:
+
+```
+<source>
+  type norikra
+  norikra localhost:26571
+  <fetch>
+    method event
+    target sample_anomaly
+    tag query_name
+    tag_prefix norikra.query
+    interval 60s
+  </fetch>
+</source>
+```
+
+(this setting assumes that your Norikra query name is "sample_anomaly")
+
+Ultimately, the fetched events can be passed everywhere you want via Fluentd. To give an example, [fluent-plugin-slack](https://github.com/sowawa/fluent-plugin-slack) enables us to notify anomalies on Slack. Sample configuration is:
+
+```
+<match norikra.query.**>
+  @type slack
+  webhook_url https://hooks.slack.com/services/XXX/XXX/XXX
+  channel anomaly-alert
+  username "Mr. ChangeFinder"
+  icon_emoji :ghost:
+  flush_interval 60s
+  message_keys cpu.host,cpu.score_change,disk.raw_value
+  message ":house: Host: %s\n:chart_with_upwards_trend: Change point score: %s, Avg. disk free spaces: %s"
+</match>
+```
 
 ## Algorithm: ChangeFinder
 
