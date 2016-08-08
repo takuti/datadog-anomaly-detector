@@ -4,9 +4,9 @@ from fluent import event
 import os
 import re
 import time
-import logging
 import configparser
 from daemon import runner
+from logging import getLogger, FileHandler, Formatter, INFO
 
 from datadog_api_helper import DatadogAPIHelper
 from changefinder import ChangeFinder
@@ -79,11 +79,11 @@ class Detector:
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger('DaemonLog')
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler = logging.FileHandler(os.getcwd() + '/changefinder.log')
-    handler.setFormatter(formatter)
+    logger = getLogger('DaemonLog')
+    logger.setLevel(INFO)
+    handler = FileHandler(os.getcwd() + '/changefinder.log')
+    handler.setFormatter(Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    handler.setLevel(INFO)
     logger.addHandler(handler)
 
     daemon_runner = runner.DaemonRunner(Detector())
