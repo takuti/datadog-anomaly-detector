@@ -56,7 +56,7 @@ class Detector:
         series = self.dd.get_series(self.start, self.end, query)
 
         for d in series:
-            record = {}
+            record = {'metric': d['src_metric']}
 
             record['raw_value'] = 0.0 if d['raw_value'] is None else d['raw_value']
 
