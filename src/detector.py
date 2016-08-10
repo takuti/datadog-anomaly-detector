@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from fluent import sender
 from fluent import event
 
+import re
 import os
 import configparser
 
@@ -44,11 +45,13 @@ class Detector:
             event.Event(s['src_metric'], record)
 
     def get_record(self, s, score_outlier, score_change):
+        host = re.match(r'.*?host:(.*)', s['scope']).group(1) if s['scope'] != '*' else '*'
+
         return {'metric': s['src_metric'],
                 'raw_value': s['raw_value'],
                 'metric_outlier': 'changefinder.outlier.' + s['src_metric'],
                 'score_outlier': score_outlier,
                 'metric_change': 'changefinder.change.' + s['src_metric'],
                 'score_change': score_change,
-                'time': int(s['time'] / 1000)  # same as Ruby's unix time
-                }
+                'time': int(s['time'] / 1000),  # same as Ruby's unix time
+                'host': host}
