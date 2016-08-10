@@ -40,7 +40,7 @@ class ChangeFinderDaemon(Detector):
 if __name__ == '__main__':
     logger = getLogger('DaemonLog')
     logger.setLevel(INFO)
-    handler = FileHandler(os.getcwd() + '/changefinder.log')
+    handler = FileHandler('/var/log/changefinder.log')
     handler.setFormatter(Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     handler.setLevel(INFO)
     logger.addHandler(handler)
