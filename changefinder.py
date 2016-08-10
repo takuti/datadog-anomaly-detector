@@ -4,22 +4,22 @@ import numpy as np
 
 class SDAR_1D:
 
-    def __init__(self, r, order):
-        """Train a AR model by using the SDAR algorithm (1d points only).
+    def __init__(self, r, k):
+        """Train a AR(k) model by using the SDAR algorithm (1d points only).
 
         Args:
             r (float): Forgetting parameter.
-            order (int): Order of the AR model (i.e. k in the paper).
+            k (int): Order of the AR model.
 
         """
 
         self.r = r
-        self.order = order
+        self.k = k
 
         # initialize the parameters
         self.mu = np.random.random()
         self.sigma = np.random.random()
-        self.c = np.zeros(self.order + 1)
+        self.c = np.zeros(self.k + 1)
 
     def update(self, x, xs):
         """Update the current AR model.
@@ -32,20 +32,20 @@ class SDAR_1D:
             float: Logloss for x.
 
         """
-        assert xs.size >= self.order, 'size of xs must be greater or equal to `order`'
+        assert xs.size >= self.k, 'size of xs must be greater or equal to the order of the AR model.'
 
         # estimate mu
         self.mu = (1 - self.r) * self.mu + self.r * x
 
         # update c (coefficients of the Yule-Walker equation)
         self.c[0] = (1 - self.r) * self.c[0] + self.r * (x - self.mu) * (x - self.mu)  # c_0: x_t = x_{t-j}
-        self.c[1:] = (1 - self.r) * self.c[1:] + self.r * (x - self.mu) * (xs[::-1][:self.order] - self.mu)
+        self.c[1:] = (1 - self.r) * self.c[1:] + self.r * (x - self.mu) * (xs[::-1][:self.k] - self.mu)
 
-        a = np.zeros(self.order)  # a_1, ..., a_k
+        a = np.zeros(self.k)  # a_1, ..., a_k
 
         # recursively solve the Yule-Walker equation
         if self.c[0] != 0:
-            for i in range(self.order):
+            for i in range(self.k):
                 a[i] = self.c[i + 1]
 
                 for j in range(i):
@@ -54,7 +54,7 @@ class SDAR_1D:
                 a[i] /= self.c[0]
 
         # estimate x
-        x_hat = np.dot(a, (xs[::-1][:self.order] - self.mu)) + self.mu
+        x_hat = np.dot(a, (xs[::-1][:self.k] - self.mu)) + self.mu
 
         # estimate sigma
         self.sigma = (1 - self.r) * self.sigma + self.r * (x - x_hat) ** 2
@@ -67,30 +67,30 @@ class SDAR_1D:
 
 class ChangeFinder:
 
-    def __init__(self, r=0.5, order=1, smooth=7):
+    def __init__(self, r=0.5, k=1, smooth=7):
         """ChangeFinder.
 
         Args:
             r (float): Forgetting parameter.
-            order (int): Order of the AR model (i.e. k in the paper).
+            k (int): Order of the AR model (i.e. consider a AR(k) process).
             smooth (int): Window size for the simple moving average (i.e. T).
 
         """
 
-        assert order > 0, 'order must be 1 or more.'
+        assert k > 0, 'k must be 1 or more.'
         assert smooth > 2, 'term must be 3 or more.'
 
         self.r = r
-        self.order = order
+        self.k = k
         self.smooth = smooth
 
-        self.xs = np.zeros(order)
+        self.xs = np.zeros(k)
         self.scores_outlier = np.zeros(smooth)
-        self.sdar_outlier = SDAR_1D(r, order)
+        self.sdar_outlier = SDAR_1D(r, k)
 
-        self.ys = np.zeros(order)
+        self.ys = np.zeros(k)
         self.logloss_ys = np.zeros(smooth)
-        self.sdar_change = SDAR_1D(r, order)
+        self.sdar_change = SDAR_1D(r, k)
 
     def update(self, x):
         """Update AR models based on 1d input x.
@@ -107,7 +107,7 @@ class ChangeFinder:
         logloss_x = self.sdar_outlier.update(x, self.xs)
         self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.smooth)
 
-        self.xs = self.add_one(x, self.xs, self.order)
+        self.xs = self.add_one(x, self.xs, self.k)
 
         # Smoothing when we have enough (>T) first scores
         y = self.smoothing(self.scores_outlier)
@@ -116,7 +116,7 @@ class ChangeFinder:
         logloss_y = self.sdar_change.update(y, self.ys)
         self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.smooth)
 
-        self.ys = self.add_one(y, self.ys, self.order)
+        self.ys = self.add_one(y, self.ys, self.k)
 
         # Return outlier and change point scores
         return logloss_x, self.smoothing(self.logloss_ys)
