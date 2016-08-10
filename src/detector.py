@@ -21,17 +21,25 @@ class Detector:
 
         parser = configparser.ConfigParser()
         parser.read(os.getcwd() + '/config/datadog.ini')
-        self.queries = parser['datadog'].get('queries').strip().split('\n')
 
-        r = float(parser['changefinder'].get('r'))
-        k = int(parser['changefinder'].get('k'))
-        T1 = int(parser['changefinder'].get('T1'))
-        T2 = int(parser['changefinder'].get('T2'))
+        dd_section_names = [s for s in parser.sections()
+                            if re.match('^datadog\..*$', s) is not None]
 
         # create ChangeFinder instances for each query (metric)
+        self.queries = []
         self.cfs = {}
-        for query in self.queries:
-            self.cfs[query] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
+        for section_name in dd_section_names:
+            s = parser[section_name]
+
+            r = float(s.get('r'))
+            k = int(s.get('k'))
+            T1 = int(s.get('T1'))
+            T2 = int(s.get('T2'))
+
+            q = s.get('query')
+            self.queries.append(q)
+
+            self.cfs[q] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
 
         self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
                                    api_key=os.environ['DD_API_KEY'])
