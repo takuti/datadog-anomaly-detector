@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import numpy.linalg as ln
+from scipy.linalg import toeplitz
 
 
 class SDAR_1D:
@@ -41,6 +43,7 @@ class SDAR_1D:
         self.c[0] = (1 - self.r) * self.c[0] + self.r * (x - self.mu) * (x - self.mu)  # c_0: x_t = x_{t-j}
         self.c[1:] = (1 - self.r) * self.c[1:] + self.r * (x - self.mu) * (xs[::-1][:self.k] - self.mu)
 
+        """TODO: Must be tested here
         a = np.zeros(self.k)  # a_1, ..., a_k
 
         # recursively solve the Yule-Walker equation
@@ -52,6 +55,10 @@ class SDAR_1D:
                     a[i] -= (a[j] * self.c[i - j])
 
                 a[i] /= self.c[0]
+        """
+
+        C = toeplitz(self.c[:self.k])
+        a = np.dot(ln.inv(C), self.c[1:])
 
         # estimate x
         x_hat = np.dot(a, (xs[::-1][:self.k] - self.mu)) + self.mu
