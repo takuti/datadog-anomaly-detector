@@ -20,7 +20,7 @@ class ChangeFinderDaemon(Detector):
         self.pidfile_path = parser['general'].get('pidfile_path')
         self.pidfile_timeout = 5
 
-        self.window_sec = 60 * 10  # 10 min
+        self.window_sec = int(parser['general'].get('window_sec'))
 
     def run(self):
         logger.info('Start running a daemon')

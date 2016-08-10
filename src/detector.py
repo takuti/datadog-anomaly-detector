@@ -23,10 +23,14 @@ class Detector:
         parser.read(os.getcwd() + '/config/datadog.ini')
         self.queries = parser['datadog'].get('queries').strip().split('\n')
 
+        r = float(parser['changefinder'].get('r'))
+        k = int(parser['changefinder'].get('k'))
+        smooth = int(parser['changefinder'].get('smooth'))
+
         # create ChangeFinder instances for each query (metric)
         self.cfs = {}
         for query in self.queries:
-            self.cfs[query] = ChangeFinder(r=0.01, k=1, smooth=10)
+            self.cfs[query] = ChangeFinder(r=r, k=k, smooth=smooth)
 
         self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
                                    api_key=os.environ['DD_API_KEY'])
