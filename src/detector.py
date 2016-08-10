@@ -6,8 +6,8 @@ from fluent import event
 import os
 import configparser
 
-from datadog_api_helper import DatadogAPIHelper
-from changefinder import ChangeFinder
+from .datadog_api_helper import DatadogAPIHelper
+from .changefinder import ChangeFinder
 
 
 class Detector:

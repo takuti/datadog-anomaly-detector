@@ -4,7 +4,7 @@ import configparser
 from daemon import runner
 from logging import getLogger, FileHandler, Formatter, INFO
 
-from detector import Detector
+from src.detector import Detector
 
 
 class ChangeFinderDaemon(Detector):
