@@ -20,13 +20,13 @@ class ChangeFinderDaemon(Detector):
         self.pidfile_path = parser['general'].get('pidfile_path')
         self.pidfile_timeout = 5
 
-        self.window_sec = int(parser['general'].get('window_sec'))
+        self.dd_api_interval = int(parser['general'].get('interval'))
 
     def run(self):
         logger.info('Start running a daemon')
 
         end = int(time.time())
-        start = end - self.window_sec
+        start = end - self.dd_api_interval
 
         while True:
             self.query(start, end)
@@ -34,7 +34,7 @@ class ChangeFinderDaemon(Detector):
             start = end + 1
             end = int(time.time())
 
-            time.sleep(self.window_sec)
+            time.sleep(self.dd_api_interval)
 
 
 if __name__ == '__main__':
