@@ -31,7 +31,7 @@ class Detector:
         # create ChangeFinder instances for each query (metric)
         self.cfs = {}
         for query in self.queries:
-            self.cfs[query] = ChangeFinder(r=0.01, order=1, smooth=10)
+            self.cfs[query] = ChangeFinder(r=0.01, k=1, smooth=10)
 
         self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
                                    api_key=os.environ['DD_API_KEY'])
