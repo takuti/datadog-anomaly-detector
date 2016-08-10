@@ -74,29 +74,30 @@ class SDAR_1D:
 
 class ChangeFinder:
 
-    def __init__(self, r=0.5, k=1, smooth=7):
+    def __init__(self, r=0.5, k=1, T1=7, T2=7):
         """ChangeFinder.
 
         Args:
             r (float): Forgetting parameter.
             k (int): Order of the AR model (i.e. consider a AR(k) process).
-            smooth (int): Window size for the simple moving average (i.e. T).
+            T1 (int): Window size for the simple moving average of outlier scores.
+            T2 (int): Window size to compute a change point score.
 
         """
 
         assert k > 0, 'k must be 1 or more.'
-        assert smooth > 2, 'term must be 3 or more.'
 
         self.r = r
         self.k = k
-        self.smooth = smooth
+        self.T1 = T1
+        self.T2 = T2
 
         self.xs = np.zeros(k)
-        self.scores_outlier = np.zeros(smooth)
+        self.scores_outlier = np.zeros(T1)
         self.sdar_outlier = SDAR_1D(r, k)
 
         self.ys = np.zeros(k)
-        self.logloss_ys = np.zeros(smooth)
+        self.logloss_ys = np.zeros(T2)
         self.sdar_change = SDAR_1D(r, k)
 
     def update(self, x):
@@ -112,7 +113,7 @@ class ChangeFinder:
 
         # Stage 1: Outlier Detection (SDAR #1)
         logloss_x = self.sdar_outlier.update(x, self.xs)
-        self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.smooth)
+        self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.T1)
 
         self.xs = self.add_one(x, self.xs, self.k)
 
@@ -121,7 +122,7 @@ class ChangeFinder:
 
         # Stage 2: Change Point Detection (SDAR #2)
         logloss_y = self.sdar_change.update(y, self.ys)
-        self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.smooth)
+        self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.T2)
 
         self.ys = self.add_one(y, self.ys, self.k)
 

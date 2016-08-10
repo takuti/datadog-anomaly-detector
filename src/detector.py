@@ -25,12 +25,13 @@ class Detector:
 
         r = float(parser['changefinder'].get('r'))
         k = int(parser['changefinder'].get('k'))
-        smooth = int(parser['changefinder'].get('smooth'))
+        T1 = int(parser['changefinder'].get('T1'))
+        T2 = int(parser['changefinder'].get('T2'))
 
         # create ChangeFinder instances for each query (metric)
         self.cfs = {}
         for query in self.queries:
-            self.cfs[query] = ChangeFinder(r=r, k=k, smooth=smooth)
+            self.cfs[query] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
 
         self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
                                    api_key=os.environ['DD_API_KEY'])
