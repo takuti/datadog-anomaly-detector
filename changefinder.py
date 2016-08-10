@@ -55,7 +55,7 @@ class SDAR_1D:
         self.sigma = (1 - self.r) * self.sigma + self.r * (x - x_hat) ** 2
 
         # compute the probability density function
-        p = np.exp(-0.5 * (x - x_hat) ** 2 / self.sigma) / ((2 * np.pi) ** (self.order / 2) * (self.sigma) ** 0.5)
+        p = np.exp(-0.5 * (x - x_hat) ** 2 / self.sigma) / ((2 * np.pi) ** 0.5 * (self.sigma) ** 0.5)
 
         return -np.log(p)
 
