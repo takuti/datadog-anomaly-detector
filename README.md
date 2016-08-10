@@ -200,12 +200,16 @@ Our implementation only supports 1D inputs for now.
 
 ### References
 
-- [SDAR model](https://www.computer.org/cms/dl/trans/tk/2006/04/extras/k0482s.pdf)
-- [Solving the Yule-Walker equation](http://mpastell.com/pweave/_downloads/AR_yw.html)
-- [fluentd plugin](https://github.com/muddydixon/fluent-plugin-anomalydetect/blob/master/lib/fluent/plugin/out_anomalydetect.rb)
-- [Java implementation](https://github.com/acromusashi/acromusashi-stream-ml/blob/master/src/main/java/acromusashi/stream/ml/anomaly/cf/ChangeFinder.java)
-- [Example with synthetic data](http://cl-www.msi.co.jp/reports/changefinder.html) (in Japanese)
-- [Levinson-Durbin algorithm for fast Yule-Walker solving](http://www.kumst.kyoto-u.ac.jp/kougi/time_series/Appendix1.pdf) (in Japanese)
+- [SDAR algorithm](https://www.computer.org/cms/dl/trans/tk/2006/04/extras/k0482s.pdf)
+- Solving the Yule-Walker equation
+	- [Analytically solve the linear systems](http://mpastell.com/pweave/_downloads/AR_yw.html)
+	- [Efficient recursive algorithm](http://www.leif.org/EOS/vonSt0521012309.pdf) (p. 217) 
+- Other implementations
+	- [fluentd plugin](https://github.com/muddydixon/fluent-plugin-anomalydetect/blob/master/lib/fluent/plugin/out_anomalydetect.rb)
+	- [Java implementation](https://github.com/acromusashi/acromusashi-stream-ml/blob/master/src/main/java/acromusashi/stream/ml/anomaly/cf/ChangeFinder.java)
+- Time series samples
+	- [Twitter](https://blog.twitter.com/2015/introducing-practical-and-robust-anomaly-detection-in-a-time-series)
+	- [Synthetic data](http://cl-www.msi.co.jp/reports/changefinder.html) (in Japanese)
 
 ## License
 
