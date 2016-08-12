@@ -10,7 +10,7 @@ class SDAR_1D:
         """Train a AR(k) model by using the SDAR algorithm (1d points only).
 
         Args:
-            r (float): Forgetting parameter.
+            r (float): Discounting parameter.
             k (int): Order of the AR model.
 
         """
@@ -78,7 +78,7 @@ class ChangeFinder:
         """ChangeFinder.
 
         Args:
-            r (float): Forgetting parameter.
+            r (float): Discounting parameter.
             k (int): Order of the AR model (i.e. consider a AR(k) process).
             T1 (int): Window size for the simple moving average of outlier scores.
             T2 (int): Window size to compute a change point score.
