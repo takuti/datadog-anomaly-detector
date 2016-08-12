@@ -36,6 +36,9 @@ class ChangeFinderDaemon(Detector):
 
             time.sleep(self.dd_api_interval)
 
+            # incorporate new queries which were inserted during the interval
+            self.load_dd_config()
+
 
 if __name__ == '__main__':
     logger = getLogger('DaemonLog')

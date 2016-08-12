@@ -19,6 +19,14 @@ class Detector:
     def __init__(self, fluent_tag_prefix):
         sender.setup(fluent_tag_prefix)
 
+        self.queries = []
+        self.cfs = {}
+        self.load_dd_config()
+
+        self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
+                                   api_key=os.environ['DD_API_KEY'])
+
+    def load_dd_config(self):
         parser = configparser.ConfigParser()
         parser.read(os.getcwd() + '/config/datadog.ini')
 
@@ -26,23 +34,24 @@ class Detector:
                             if re.match('^datadog\..*$', s) is not None]
 
         # create ChangeFinder instances for each query (metric)
-        self.queries = []
-        self.cfs = {}
         for section_name in dd_section_names:
             s = parser[section_name]
+
+            q = s.get('query')
+
+            # since this method can be called multiple times,
+            # only new queries (i.e. dd-related sections) are handled
+            if q in self.queries:
+                continue
+
+            self.queries.append(q)
 
             r = float(s.get('r'))
             k = int(s.get('k'))
             T1 = int(s.get('T1'))
             T2 = int(s.get('T2'))
 
-            q = s.get('query')
-            self.queries.append(q)
-
             self.cfs[q] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
-
-        self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
-                                   api_key=os.environ['DD_API_KEY'])
 
     def query(self, start, end):
         for query in self.queries:
