@@ -43,9 +43,9 @@ class SDAR_1D:
         self.c[0] = (1 - self.r) * self.c[0] + self.r * (x - self.mu) * (x - self.mu)  # c_0: x_t = x_{t-j}
         self.c[1:] = (1 - self.r) * self.c[1:] + self.r * (x - self.mu) * (xs[::-1][:self.k] - self.mu)
 
-        """TODO: Must be tested here
         a = np.zeros(self.k)  # a_1, ..., a_k
 
+        """TODO: Must be tested here
         # recursively solve the Yule-Walker equation
         if self.c[0] != 0:
             for i in range(self.k):
@@ -58,7 +58,8 @@ class SDAR_1D:
         """
 
         C = toeplitz(self.c[:self.k])
-        a = np.dot(ln.inv(C), self.c[1:])
+        if not np.all(C == 0):
+            a = np.dot(ln.inv(C), self.c[1:])
 
         # estimate x
         x_hat = np.dot(a, (xs[::-1][:self.k] - self.mu)) + self.mu
