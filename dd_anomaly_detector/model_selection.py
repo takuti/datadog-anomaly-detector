@@ -6,8 +6,8 @@ import numpy as np
 import pytz
 from datetime import datetime
 
-from src.datadog_api_helper import DatadogAPIHelper
-from src.changefinder import AR_1D
+from datadog_api_helper import DatadogAPIHelper
+from changefinder.changefinder_1d import AR_1D
 
 
 @click.command()

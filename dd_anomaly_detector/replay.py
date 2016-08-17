@@ -2,7 +2,7 @@ import click
 
 import pytz
 from datetime import datetime
-from src.detector import Detector
+from base_detector import Detector
 
 
 @click.command()
