@@ -4,10 +4,21 @@ import click
 import configparser
 import numpy as np
 import pytz
+import time
 from datetime import datetime
+from tzlocal import get_localzone
 
 from datadog_api_helper import DatadogAPIHelper
 from changefinder.changefinder_1d import AR_1D
+
+
+def str2timestamp(s, timezone):
+    date = datetime.strptime(s, '%Y-%m-%d %H:%M').replace(tzinfo=pytz.timezone('Asia/Tokyo'))
+
+    # Datadog API requires machine's local timestamp
+    local_date = date.astimezone(get_localzone())
+
+    return int(time.mktime(local_date.timetuple()))
 
 
 @click.command()
@@ -29,8 +40,8 @@ def select_model(max_k, start, end, timezone):
     dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
                           api_key=os.environ['DD_API_KEY'])
 
-    time_start = int(datetime.strptime(start, '%Y-%m-%d %H:%M').replace(tzinfo=pytz.timezone(timezone)).timestamp())
-    time_end = int(datetime.strptime(end, '%Y-%m-%d %H:%M').replace(tzinfo=pytz.timezone(timezone)).timestamp())
+    time_start = str2timestamp(start, timezone)
+    time_end = str2timestamp(end, timezone)
 
     for section_name, query in dd_sections.items():
         series = dd.get_series(time_start, time_end, query)
