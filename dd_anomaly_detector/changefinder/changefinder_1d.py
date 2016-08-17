@@ -111,7 +111,7 @@ class SDAR_1D:
         """
 
         C = toeplitz(self.c[:self.k])
-        if np.isfinite(ln.cond(C)):  # ignore a singular matrix
+        if not np.all(C == 0.0) and np.isfinite(ln.cond(C)):  # ignore a singular matrix
             a = np.dot(ln.inv(C), self.c[1:])
 
         # estimate x
