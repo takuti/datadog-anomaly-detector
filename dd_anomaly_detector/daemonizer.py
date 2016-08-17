@@ -28,6 +28,8 @@ class ChangeFinderDaemon(Detector):
         start = end - self.dd_api_interval
 
         while True:
+            logger.info(self.dd_sections)
+
             self.query(start, end)
 
             start = end + 1
