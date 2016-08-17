@@ -5,13 +5,23 @@ Instruction for the others
 
 	$ ssh username@foo.com
 
-We assume that td-agent and Norikra are already running on the instance.
+We assume that td-agent and Norikra are already running on the instance. In order to start/stop them, use the following commands.
+
+td-agent:
+
+	$ sudo service td-agent start
+	$ sudo service td-agent stop
+
+Norikra:
+
+	$ norikra start --stats=/etc/norikra/norikra.json -l /var/log/norikra -Xmx2g --daemonize
+	$ norikra stop
 
 ### 2. Configure monitored Datadog queries
 
 First, enter a directory which contains forked code and sample settings ([repository](https://github.com/takuti/datadog-anomaly-detector)).
 
-	$ cd datadog-anomaly-detector
+	$ cd $HOME/datadog-anomaly-detector
 
 We already have a config *datadog.ini* under a *config/* directory as:
 
@@ -25,9 +35,8 @@ We already have a config *datadog.ini* under a *config/* directory as:
 	[datadog.cpu]
 	query: system.load.norm.5{chef_environment:production,chef_role:worker6-staticip} by {host}
 
-	; ChangeFinder hyperparameters
 	r: 0.02
-	k: 7
+	k: 6
 	T1: 10
 	T2: 5
 
@@ -35,7 +44,7 @@ We already have a config *datadog.ini* under a *config/* directory as:
 	query: avg:queue.system.running{*}
 
 	r: 0.02
-	k: 7
+	k: 6
 	T1: 10
 	T2: 5
 
@@ -46,47 +55,50 @@ You can insert a new config for a different query (metric) by creating a new **d
 query: additional.metric.1{foo}
 
 r: 0.02
-k: 7
+k: 6
 T1: 10
 T2: 5
 
 ...
 ```
 
-Note that `r`, `k`, `T1` and `T2` are the parameters of our machine learning algorithm. You can set different parameters for each query if you want. In particular, you can use **dd_anomaly_detector/model_selection.py** to find optimal `k`. For more detail, see **doc/changefinder.md#model-selection**.
+Note that `r`, `k`, `T1` and `T2` are the parameters of our machine learning algorithm. You can set different parameters for each query if you want. In particular, you can use **dd_anomaly_detector/model_selection.py** to find optimal `k`. For more detail, see **[doc/changefinder.md#model-selection](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/changefinder.md#model-selection)**.
 
 ### 3. Run a daemon script
 
-Check whether a daemon script (named **daemonizer.py**) is running, and stop it if you find a process:
+Check whether a daemon script (named **daemonizer.py**) is running:
 
 	$ ps -ax | grep daemonizer.py
 	12824 ?        S      0:01 python dd_anomaly_detector/daemonizer.py start
 
+Run the daemon script if a process does not exist:
+
+	$ sudo nohup ~/.pyenv/shims/python dd_anomaly_detector/daemonizer.py start > log/out.log 2> log/error.log
+
+Now, the daemon gets points from Datadog every 10 minutes (depending on `interval` parameter in the .ini file) and passes them to Fluentd.
+
+The daemon process can be terminated by:
+
 	$ sudo ~/.pyenv/shims/python dd_anomaly_detector/daemonizer.py stop
 
-Run the daemon script:
-
-	$ sudo nohup ~/.pyenv/shims/python dd_anomaly_detector/daemonizer.py start > out.log 2> error.log
-
-Now, the daemon gets points from Datadog every 10 minutes and passes them to Fluentd.
 
 ### 4. Check outlier and change point scores on Datadog
 
 For each metric, change point and outlier scores are again passed to Datadog as new metrics. 
 
-To give an example, when you inserted a query for a metric **additional.metric.1** into *config/datadog.ini*, you can check its outlier and change scores on Datadog by new metrics **changefinder.outlier.additional.metric.1** and **changefinder.change.additional.metric.1** respectively.
+To give an example, when you are monitoring a query for a metric **queue.system.running** into *config/datadog.ini*, you can check its outlier and change scores on Datadog by new metrics **changefinder.outlier.queue.system.running** and **changefinder.change.queue.system.running** respectively.
 
 ### 5. Add Norikra aggregation queries
 
-By Fluentd, the records are streamed to Norikra. For each metric, a Norikra target will be created with the same name. For instance, a target **additional_metric_1** is created for a metric **additional.metric.1** (a period `.` is replaced with an underscore `_`).
+By Fluentd, the records are streamed to Norikra. For each metric, a Norikra target will be automatically created with the same name. For instance, a target **queue_system_running** is created for a metric **queue.system.running** (a dot `.` is replaced with an underscore `_`).
 
 On Norikra, all metric streams need to be aggregated into an **aggregated_metric** target. So, you must add a LOOPBACK query for each metric you specified in the *config/datadog.ini*.
 
-For the **additional.metric.1** metric, please add the following query with a group name **LOOPBACK(aggregated_metric)**.
+For the **queue.system.running** metric, please add the following query with a group name **LOOPBACK(aggregated_metric)**.
 
 ```sql
 SELECT metric, raw_value, score_outlier, score_change, time
-FROM additional_metric_1.win:time_batch(10 sec)
+FROM queue_system_running.win:time_batch(10 sec)
 ```
 
 The SQL-like syntax is called ***EPL*** (see section 5 to 14 of [Esper v5.2 Reference](http://www.espertech.com/esper/release-5.2.0/esper-reference/html/index.html)). In this case, Norikra runs the aggregation every 10 seconds as configured `.win:time_batch(10 sec)`.
@@ -110,7 +122,7 @@ HAVING count(a.metric) != 0
 
 This query detects the events (i.e. anomalies) iff at least one point in a window satisfies a condition that a `raw_value` field in a `system_disk_free` target is less than 1000000000 or a `score_change` field in a `system_ipu_idle` target is greater than 15. Here, the query obtains maximum raw value, change score and outlier score for each metric per window, 
 
-Here, window size is given for a "time" field of the record, and this field is Datadog's original timestamp (not Fluentd/Norikra's timestamp). It should be noted that `a.time * 1000` (i.e. unix time in millisecond range) should be used instead of `a.time` itself. For more information about field-based windowing, see [a reference page](http://www.espertech.com/esper/release-5.2.0/esper-reference/html/epl-views.html#view-win-ext-time-batch). 
+In the above case, window size is given for a "time" field of the record, and this field is Datadog's original timestamp (not Fluentd/Norikra's timestamp). It should be noted that `a.time * 1000` (i.e. unix time in millisecond range) should be used instead of `a.time` itself. For more information about field-based windowing, see [a reference page](http://www.espertech.com/esper/release-5.2.0/esper-reference/html/epl-views.html#view-win-ext-time-batch). 
 
 The detected events can be fetched by Fluentd:
 
@@ -157,6 +169,8 @@ If you test your queries and notification settings, you can use a replay script 
 You can run the script with command-line options as:
 
 	$ python dd_anomaly_detector/replay.py --start='2016-08-10 13:30' --end='2016-08-10 13:45'
+
+Importantly, timezone for `start` and `end` options is UTC by default. For JST, you need to add an option `--timezone='Asia/Tokyo'`.
 
 For all metrics you wrote in the `config/datadog.ini` file, this script gets the metric values in a period from `start` to `end` (less than 24 hours). Following to the script, Fluentd and Norikra behaves very similar to what the daemon did, but Norikra target names have a new prefix **replay_**.
 
