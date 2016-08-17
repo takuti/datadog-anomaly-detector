@@ -17,6 +17,8 @@ class Detector:
 
     @abstractmethod
     def __init__(self, fluent_tag_prefix):
+        self.ini_path = os.getcwd() + '/config/datadog.ini'
+
         sender.setup(fluent_tag_prefix)
 
         # key: config's section_name
@@ -29,7 +31,7 @@ class Detector:
 
     def load_dd_config(self):
         parser = configparser.ConfigParser()
-        parser.read(os.getcwd() + '/config/datadog.ini')
+        parser.read(self.ini_path)
 
         dd_section_names = [s for s in parser.sections()
                             if re.match('^datadog\..*$', s) is not None]

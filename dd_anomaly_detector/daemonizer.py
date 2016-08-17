@@ -1,4 +1,3 @@
-import os
 import time
 import configparser
 from daemon import runner
@@ -13,7 +12,7 @@ class ChangeFinderDaemon(Detector):
         super().__init__('changefinder')
 
         parser = configparser.ConfigParser()
-        parser.read(os.getcwd() + '/config/datadog.ini')
+        parser.read(self.ini_path)
         self.stdin_path = '/dev/null'
         self.stdout_path = '/dev/null'
         self.stderr_path = '/dev/null'
