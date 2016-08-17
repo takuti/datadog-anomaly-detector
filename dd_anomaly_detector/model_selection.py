@@ -14,7 +14,7 @@ from changefinder.changefinder_1d import AR_1D
 @click.option('--max_k', default=50, help='Max number of k for AR(k).')
 @click.option('--start', prompt='Start', help='Datetime starting relay from.')
 @click.option('--end', prompt='End', help='Datetime starting relay to.')
-@click.option('--timezone', default='Asia/Tokyo', help='Timezone of the datetime.')
+@click.option('--timezone', default='UTC', help='Timezone of the datetime.')
 def select_model(max_k, start, end, timezone):
     parser = configparser.ConfigParser()
     parser.read(os.getcwd() + '/config/datadog.ini')
