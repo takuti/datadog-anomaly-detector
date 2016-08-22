@@ -55,38 +55,47 @@ allows you to pass the scores both to Norikra and Datadog.
 
 If you added the above Norikra configuration to the Fluentd `.conf` file, anomaly detection can be easily implemented by adding some Norikra queries.
 
-First of all, let us merge the different metric streams to single aggregated stream by using Norikra's **LOOPBACK** feature. When we are monitoring two metrics *system.cpu.idle* and *system.disk.free*, Norikra will have two corresponding targets *system_cpu_idle* and *system_disk_free*. So, creating following queries with a group name **LOOPBACK(aggregated_metric)** enables us to aggregates the targets into a new target *aggregated_metric*:
+### 1. Add Norikra aggregation queries for the targets
+
+By Fluentd, the records are streamed to Norikra. For each metric, a Norikra target will be automatically created with the same name. For instance, a target **queue_system_running** is created for a metric **queue.system.running** (a dot `.` is replaced with an underscore `_`).
+
+On Norikra, all metric streams need to be aggregated into an **aggregated_metric** target. So, you must add a LOOPBACK query for each metric you specified in the *config/datadog.ini*.
+
+For the **queue.system.running** metric, please add the following query with a group name **LOOPBACK(aggregated_metric)**.
 
 ```sql
 SELECT metric, raw_value, score_outlier, score_change, time
-FROM system_cpu_idle.win:time_batch(10 sec, 0L)
-```
-
-```sql
-SELECT metric, raw_value, score_outlier, score_change, time
-FROM system_disk_free.win:time_batch(10 sec, 0L)
+FROM queue_system_running.win:time_batch(10 sec)
 ```
 
 The SQL-like syntax is called ***EPL*** (see section 5 to 14 of [Esper v5.2 Reference](http://www.espertech.com/esper/release-5.2.0/esper-reference/html/index.html)). In this case, Norikra runs the aggregation every 10 seconds as configured `.win:time_batch(10 sec)`.
 
-Next, additional query which detects anomalies can be registered as:
+### 2. Add a filtering query
+
+For the aggregated metric, we define a filtering query like:
 
 ```sql
-SELECT a.metric AS metric,
+SELECT dateformat(MAX(a.time) * 1000, 'yyyy-MM-dd HH:mm z', 'UTC') AS max_time, 
+       dateformat(MIN(a.time) * 1000, 'yyyy-MM-dd HH:mm z', 'UTC') AS min_time,
+       a.metric AS metric,
        MAX(a.raw_value) AS raw,
        MAX(a.score_change) AS change,
        MAX(a.score_outlier) AS outlier
 FROM pattern [
   every a=aggregated_metric((metric='system.cpu.idle' and score_change > 15.0) or
                             (metric='system.disk.free' and raw_value < 1000000000))
-  ].win:ext_timed_batch(a.time * 1000, 1 min, 0L)
+  ].win:ext_timed_batch(a.time * 1000, 1 min)
 GROUP BY a.metric
 HAVING count(a.metric) != 0
 ```
 
 This query detects the events (i.e. anomalies) iff at least one point in a window satisfies a condition that a `raw_value` field in a `system_disk_free` target is less than 1000000000 or a `score_change` field in a `system_ipu_idle` target is greater than 15. Here, the query obtains maximum raw value, change score and outlier score for each metric per window, 
 
-Here, window size is given for a "time" field of the record, and this field is Datadog's original timestamp (not Fluentd/Norikra's timestamp). It should be noted that `a.time * 1000` (i.e. unix time in millisecond range) should be used instead of `a.time` itself. For more information about field-based windowing, see [a reference page](http://www.espertech.com/esper/release-5.2.0/esper-reference/html/epl-views.html#view-win-ext-time-batch). 
+In the above case, window size is given for a "time" field of the record, and this field is Datadog's original timestamp (not Fluentd/Norikra's timestamp). It should be noted that `a.time * 1000` (i.e. unix time in millisecond range) should be used instead of `a.time` itself. For more information about field-based windowing, see [a reference page](http://www.espertech.com/esper/release-5.2.0/esper-reference/html/epl-views.html#view-win-ext-time-batch). 
+
+In order to get date-time information of the detected anomalies for each window, the query uses [norikra-udf-dateformat](https://github.com/takuti/norikra-udf-dateformat) for both maximum and minimum values of the `time` filed.
+
+### 3. Set up anomaly detection and Slack notification
 
 Finally, the detected events can be fetched by Fluentd:
 
@@ -121,7 +130,7 @@ As a result, the fetched events can be passed everywhere you want via Fluentd. T
 </match>
 ```
 
-### Replay anomaly detection with the previous data points
+### 4. Replay anomaly detection with the previous data points
 
 If you test your queries and notification settings, you can use a replay script at `$HOME/datadog-anomaly-detector/dd_anomaly_detecto/replay.py`. Let us again go back to the directory:
 
@@ -130,6 +139,8 @@ If you test your queries and notification settings, you can use a replay script 
 You can run the script with command-line options as:
 
 	$ python dd_anomaly_detector/replay.py --start='2016-08-10 13:30' --end='2016-08-10 13:45'
+
+Importantly, timezone for `start` and `end` options is UTC by default. For JST, you need to add an option `--timezone='Asia/Tokyo'`.
 
 For all metrics you wrote in the `config/datadog.ini` file, this script gets the metric values in a period from `start` to `end` (less than 24 hours). Following to the script, Fluentd and Norikra behaves very similar to what the daemon did, but Norikra target names have a new prefix **replay_**.
 
