@@ -22,8 +22,6 @@ class ChangeFinderDaemon(Detector):
         self.dd_api_interval = int(parser['general'].get('interval'))
 
     def run(self):
-        logger.info('Start running a daemon')
-
         end = int(time.time())
         start = end - self.dd_api_interval
 
@@ -42,13 +40,21 @@ class ChangeFinderDaemon(Detector):
 
 
 if __name__ == '__main__':
-    logger = getLogger('DaemonLog')
+    logger = getLogger('ChangeFinder')
     logger.setLevel(INFO)
     handler = FileHandler('/var/log/changefinder.log')
-    handler.setFormatter(Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    handler.setFormatter(Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     handler.setLevel(INFO)
     logger.addHandler(handler)
 
     daemon_runner = runner.DaemonRunner(ChangeFinderDaemon())
+
+    if daemon_runner.action == 'start':
+        logger.info('Start running a daemon')
+    elif daemon_runner.action == 'stop':
+        logger.info('Stop a daemon')
+    elif daemon_runner.action == 'restart':
+        logger.info('Restarting a daemon')
+
     daemon_runner.daemon_context.files_preserve = [handler.stream]
     daemon_runner.do_action()

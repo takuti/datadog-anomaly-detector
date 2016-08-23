@@ -17,8 +17,10 @@ class DatadogAPIHelper:
         """
         j = api.Metric.query(start=start, end=end, query=query)
 
-        if j['status'] != 'ok':
-            raise Exception('Status was NOT `ok`.')
+        if 'errors' in j:
+            raise RuntimeError('Datadog: %s' % j['errors'])
+        if 'status' in j and j['status'] != 'ok':
+            raise RuntimeError('Datadog: API status was NOT ok: %s' % j['status'])
 
         series = []
 

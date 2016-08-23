@@ -5,10 +5,14 @@ from fluent import event
 
 import re
 import os
+import sys
 import configparser
 
 from datadog_api_helper import DatadogAPIHelper
 from changefinder.changefinder_1d import ChangeFinder
+
+from logging import getLogger
+logger = getLogger('ChangeFinder')
 
 
 class Detector:
@@ -58,18 +62,32 @@ class Detector:
             k = int(s.get('k'))
             T1 = int(s.get('T1'))
             T2 = int(s.get('T2'))
-            self.dd_sections[section_name]['cf'] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
+
+            try:
+                self.dd_sections[section_name]['cf'] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
+            except AssertionError as err:
+                logger.error(err)
+                sys.exit(1)
 
     def query(self, start, end):
         for section_name in self.dd_sections.keys():
-            series = self.dd.get_series(start, end,
-                                        self.dd_sections[section_name]['query'])
+            try:
+                series = self.dd.get_series(start, end,
+                                            self.dd_sections[section_name]['query'])
+            except RuntimeError as err:
+                logger.error(err)
+                sys.exit(1)
+
             self.handle_series(section_name, series)
 
     def handle_series(self, section_name, series):
         for s in series:
             s['raw_value'] = 0.0 if s['raw_value'] is None else s['raw_value']
-            score_outlier, score_change = self.dd_sections[section_name]['cf'].update(s['raw_value'])
+            try:
+                score_outlier, score_change = self.dd_sections[section_name]['cf'].update(s['raw_value'])
+            except AssertionError as err:
+                logger.error(err)
+                sys.exit(1)
 
             record = self.get_record(s, score_outlier, score_change)
             event.Event(s['src_metric'], record)
