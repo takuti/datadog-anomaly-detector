@@ -75,7 +75,8 @@ class Detector:
             event.Event(s['src_metric'], record)
 
     def get_record(self, s, score_outlier, score_change):
-        host = re.match(r'.*?host:(.*)', s['scope']).group(1) if s['scope'] != '*' else '*'
+        matched = re.match(r'.*?host:(.*)', s['scope'])
+        host = matched.group(1) if matched is not None else s['scope']
 
         return {'metric': s['src_metric'],
                 'raw_value': s['raw_value'],
