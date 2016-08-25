@@ -3,7 +3,9 @@ Datadog Anomaly Detector
 
 Get Datadog metrics and pass anomaly scores to Datadog itself via Fluentd.
 
-By integrating CEP engines such as [Esper](http://www.espertech.com/esper/) and [Norikra](http://norikra.github.io/), you can implement more practical applications. We introduce it in **[doc/norikra.md](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/norikra.md)**.
+By integrating CEP engines such as [Esper](http://www.espertech.com/esper/) and [Norikra](http://norikra.github.io/), you can implement more practical applications as follows. We introduce it in **[doc/norikra.md](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/norikra.md)**.
+
+![system](https://raw.githubusercontent.com/takuti/datadog-anomaly-detector/master/doc/images/system.png "system")
 
 ## Minimal Requirements
 
