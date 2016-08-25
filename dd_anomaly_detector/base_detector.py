@@ -93,9 +93,6 @@ class Detector:
             event.Event(re.match('^datadog\.(.*)$', section_name).group(1), record)
 
     def get_record(self, s, score_outlier, score_change):
-        matched = re.match(r'.*?host:(.*)', s['scope'])
-        host = matched.group(1) if matched is not None else s['scope']
-
         return {'metric': s['src_metric'],
                 'snapshot_url': s['snapshot_url'],
                 'raw_value': s['raw_value'],
@@ -103,5 +100,4 @@ class Detector:
                 'score_outlier': score_outlier,
                 'metric_change': 'changefinder.change.' + s['src_metric'],
                 'score_change': score_change,
-                'time': int(s['time'] / 1000),  # same as Ruby's unix time
-                'host': host}
+                'time': int(s['time'] / 1000)}  # same as Ruby's unix time
