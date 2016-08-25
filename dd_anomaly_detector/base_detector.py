@@ -90,7 +90,7 @@ class Detector:
                 sys.exit(1)
 
             record = self.get_record(s, score_outlier, score_change)
-            event.Event(s['src_metric'], record)
+            event.Event(re.match('^datadog\.(.*)$', section_name).group(1), record)
 
     def get_record(self, s, score_outlier, score_change):
         matched = re.match(r'.*?host:(.*)', s['scope'])
