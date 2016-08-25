@@ -62,15 +62,30 @@ class DatadogAPIHelper:
 
         series = []
 
+        snapshot_url = self.get_snapshot(start, end, query)
+
         for d in j['series']:
             # p = [ timestamp, value ]
             series += [{'src_metric': d['metric'],
                         'scope': d['scope'],
                         'time': int(p[0]),
-                        'raw_value': p[1]
+                        'raw_value': p[1],
+                        'snapshot_url': snapshot_url
                         } for p in d['pointlist']]
 
         return sorted(series, key=lambda d: d['time'])
+
+    def get_snapshot(self, start, end, query):
+        """Get a snapshot for the given query in the period.
+
+        Args:
+            start (int): Unix timestamp.
+            end (int): Unix timestamp.
+            query (string): Datadog query.
+
+        """
+        j = api.Graph.create(metric_query=query, start=start, end=end)
+        return j['snapshot_url']
 
     def post_metric(self, metric, points, host):
         """Post the given points to a specified metric with host information.

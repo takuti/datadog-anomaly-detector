@@ -97,6 +97,7 @@ class Detector:
         host = matched.group(1) if matched is not None else s['scope']
 
         return {'metric': s['src_metric'],
+                'snapshot_url': s['snapshot_url'],
                 'raw_value': s['raw_value'],
                 'metric_outlier': 'changefinder.outlier.' + s['src_metric'],
                 'score_outlier': score_outlier,
