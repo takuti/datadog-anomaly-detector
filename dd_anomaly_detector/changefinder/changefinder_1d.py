@@ -1,66 +1,9 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import numpy.linalg as ln
 from scipy.linalg import toeplitz
 
 from logging import getLogger
 logger = getLogger('ChangeFinder')
-
-
-class AR_1D:
-
-    def __init__(self, k):
-        """AR(k): k-th order AR model.
-        cf. https://www.computer.org/cms/dl/trans/tk/2006/04/extras/k0482s.pdf
-
-        Args:
-            k (int): Order of the AR model.
-
-        """
-
-        self.k = k
-
-        # initialize the parameters
-        self.mu = self.sigma = 0.0
-        self.c = np.zeros(self.k + 1)
-
-    def estimate(self, x):
-        """Estimate the parameters of the AR model.
-        Estimation is done by a batch algorithm for the given t data points.
-        That is, the algorithm assumes that the data source is stationary.
-
-        Args:
-            x (numpy array): all t data points (1, ..., t).
-
-        """
-        t = x.size
-
-        # estimate mu
-        self.mu = 0
-        for i in range(self.k, t):
-            self.mu += x[i]
-        self.mu /= (t - self.k)
-
-        # create c (coefficients of the Yule-Walker equation)
-        self.c = np.zeros(self.k + 1)
-        for j in range(self.k + 1):
-            for i in range(self.k, t):
-                self.c[j] += ((x[i] - self.mu) * (x[i - j] - self.mu))
-            self.c[j] /= (t - self.k)
-
-        # solve the Yule-Walker equation
-        a = np.zeros(self.k)  # a_1, ..., a_k
-        try:
-            C = toeplitz(self.c[:self.k])
-            if not np.all(C == 0.0) and np.isfinite(ln.cond(C)):  # ignore a singular matrix
-                a = np.dot(ln.inv(C), self.c[1:])
-        except ln.LinAlgError:
-            logger.warning('Encountered a singular matrix. Your anomaly scores are probably wrong, so please relaunch the script.')
-
-        # estimate sigma
-        self.sigma = self.c[0]
-        for i in range(self.k):
-            self.sigma -= (a[i] * self.c[i + 1])
 
 
 class SDAR_1D:
