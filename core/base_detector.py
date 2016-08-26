@@ -8,8 +8,8 @@ import os
 import sys
 import configparser
 
-from datadog_api_helper import DatadogAPIHelper
-from changefinder.changefinder_1d import ChangeFinder
+from .datadog_api_helper import DatadogAPIHelper
+from .changefinder.changefinder_1d import ChangeFinder
 
 from logging import getLogger
 logger = getLogger('ChangeFinder')

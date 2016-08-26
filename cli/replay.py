@@ -1,19 +1,14 @@
+import os
+import sys
 import click
 
-import pytz
-import time
-from datetime import datetime
-from tzlocal import get_localzone
-from base_detector import Detector
+from utils import str2timestamp
 
-
-def str2timestamp(s, timezone):
-    date = datetime.strptime(s, '%Y-%m-%d %H:%M').replace(tzinfo=pytz.timezone(timezone))
-
-    # Datadog API requires machine's local timestamp
-    local_date = date.astimezone(get_localzone())
-
-    return int(time.mktime(local_date.timetuple()))
+try:
+    from core.base_detector import Detector
+except ImportError:
+    sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
+    from core.base_detector import Detector
 
 
 @click.command()

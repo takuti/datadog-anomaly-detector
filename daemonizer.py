@@ -3,7 +3,7 @@ import configparser
 from daemon import runner
 from logging import getLogger, FileHandler, Formatter, INFO
 
-from base_detector import Detector
+from core.base_detector import Detector
 
 
 class ChangeFinderDaemon(Detector):

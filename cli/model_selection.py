@@ -1,15 +1,19 @@
 import re
 import os
+import sys
 import click
 import configparser
 import numpy as np
-import pytz
-import time
-from datetime import datetime
-from tzlocal import get_localzone
 
-from datadog_api_helper import DatadogAPIHelper
-from changefinder.ar_1d import ModelSelection
+from utils import str2timestamp
+
+try:
+    from core.datadog_api_helper import DatadogAPIHelper
+    from core.changefinder.ar_1d import ModelSelection
+except ImportError:
+    sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
+    from core.datadog_api_helper import DatadogAPIHelper
+    from core.changefinder.ar_1d import ModelSelection
 
 
 @click.command()
@@ -18,15 +22,6 @@ from changefinder.ar_1d import ModelSelection
 @click.option('--end', prompt='End', help='Datetime starting relay to.')
 @click.option('--timezone', default='UTC', help='Timezone of the datetime.')
 def cli(max_k, start, end, timezone):
-
-    def str2timestamp(s, timezone):
-        date = datetime.strptime(s, '%Y-%m-%d %H:%M').replace(tzinfo=pytz.timezone(timezone))
-
-        # Datadog API requires machine's local timestamp
-        local_date = date.astimezone(get_localzone())
-
-        return int(time.mktime(local_date.timetuple()))
-
     time_start = str2timestamp(start, timezone)
     time_end = str2timestamp(end, timezone)
 
