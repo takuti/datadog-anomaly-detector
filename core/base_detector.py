@@ -6,9 +6,12 @@ from fluent import event
 import re
 import os
 import sys
+import time
 import configparser
+import numpy as np
 
 from .datadog_api_helper import DatadogAPIHelper
+from .changefinder.ar_1d import ModelSelection
 from .changefinder.changefinder_1d import ChangeFinder
 
 from logging import getLogger
@@ -25,13 +28,26 @@ class Detector:
 
         sender.setup(fluent_tag_prefix)
 
+        self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
+                                   api_key=os.environ['DD_API_KEY'])
+
         # key: config's section_name
         # value: { query: (query string), cf: (ChangeFinder instance) }
         self.dd_sections = {}
         self.load_dd_config()
 
-        self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
-                                   api_key=os.environ['DD_API_KEY'])
+    def select_k(self, query):
+        end = int(time.time())
+        start = end - (60 * 60 * 24)  # one day interval
+
+        try:
+            series = self.dd.get_series(start, end, query)
+        except RuntimeError as err:
+            logger.error(err)
+            sys.exit(1)
+
+        x = np.array([(0.0 if s['raw_value'] is None else s['raw_value']) for s in series])
+        return ModelSelection().select(x)[0]
 
     def load_dd_config(self):
         parser = configparser.ConfigParser()
@@ -58,10 +74,10 @@ class Detector:
             q = s.get('query')
             self.dd_sections[section_name]['query'] = q
 
-            r = float(s.get('r'))
-            k = int(s.get('k'))
-            T1 = int(s.get('T1'))
-            T2 = int(s.get('T2'))
+            r = s.getfloat('r') or 0.02
+            k = s.getint('k') or self.select_k(q)
+            T1 = s.getint('T1') or 10
+            T2 = s.getint('T2') or 5
 
             try:
                 self.dd_sections[section_name]['cf'] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
