@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as ln
-from scipy.linalg import toeplitz
+
+from .utils import aryule
 
 from logging import getLogger
 logger = getLogger('ChangeFinder')
@@ -50,9 +51,7 @@ class AR_1D:
         # solve the Yule-Walker equation
         a = np.zeros(self.k)  # a_1, ..., a_k
         try:
-            C = toeplitz(self.c[:self.k])
-            if not np.all(C == 0.0) and np.isfinite(ln.cond(C)):  # ignore a singular matrix
-                a = np.dot(ln.inv(C), self.c[1:])
+            a = aryule(self.c, self.k)
         except ln.LinAlgError:
             logger.warning('Encountered a singular matrix. Your anomaly scores are probably wrong, so please relaunch the script.')
 

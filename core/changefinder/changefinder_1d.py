@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as ln
-from scipy.linalg import toeplitz
+
+from .utils import aryule
 
 from logging import getLogger
 logger = getLogger('ChangeFinder')
@@ -46,23 +47,8 @@ class SDAR_1D:
         self.c[1:] = (1 - self.r) * self.c[1:] + self.r * (x - self.mu) * (xs[::-1][:self.k] - self.mu)
 
         a = np.zeros(self.k)  # a_1, ..., a_k
-
-        """TODO: Must be tested here
-        # recursively solve the Yule-Walker equation
-        if self.c[0] != 0:
-            for i in range(self.k):
-                a[i] = self.c[i + 1]
-
-                for j in range(i):
-                    a[i] -= (a[j] * self.c[i - j])
-
-                a[i] /= self.c[0]
-        """
-
         try:
-            C = toeplitz(self.c[:self.k])
-            if not np.all(C == 0.0) and np.isfinite(ln.cond(C)):  # ignore a singular matrix
-                a = np.dot(ln.inv(C), self.c[1:])
+            a = aryule(self.c, self.k)
         except ln.LinAlgError:
             logger.warning('Encountered a singular matrix. Your anomaly scores are probably wrong, so let you relaunch the script.')
 
