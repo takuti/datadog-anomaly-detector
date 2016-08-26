@@ -17,28 +17,7 @@ class DatadogAPIHelper:
 
         # slack notification setting
         if does_notify_slack:
-            self.load_slack_config()
-
-    def load_slack_config(self):
-        parser = configparser.ConfigParser()
-        parser.read(os.getcwd() + '/config/datadog.ini')
-
-        if 'slack' not in parser:
-            logger.warning('Datadog: Slack notification setting is true, but the configuration cannot be found from the .ini file.')
-            self.does_notify_slack = False
-            return
-
-        s = parser['slack']
-        self.slack = slackweb.Slack(url=s.get('url'))
-
-        channel = s.get('channel') or '#general'
-        username = s.get('username') or 'Bot'
-        icon_emoji = s.get('icon_emoji') or ':ghost:'
-
-        self.slack_notify = partial(self.slack.notify,
-                                    channel=channel,
-                                    username=username,
-                                    icon_emoji=icon_emoji)
+            self.__load_slack_config()
 
     def get_series(self, start, end, query):
         """Get time series points.
@@ -62,7 +41,7 @@ class DatadogAPIHelper:
 
         series = []
 
-        snapshot_url = self.get_snapshot(start, end, query)
+        snapshot_url = self.__get_snapshot(start, end, query)
 
         for d in j['series']:
             # p = [ timestamp, value ]
@@ -74,18 +53,6 @@ class DatadogAPIHelper:
                         } for p in d['pointlist']]
 
         return sorted(series, key=lambda d: d['time'])
-
-    def get_snapshot(self, start, end, query):
-        """Get a snapshot for the given query in the period.
-
-        Args:
-            start (int): Unix timestamp.
-            end (int): Unix timestamp.
-            query (string): Datadog query.
-
-        """
-        j = api.Graph.create(metric_query=query, start=start, end=end)
-        return j['snapshot_url']
 
     def post_metric(self, metric, points, host):
         """Post the given points to a specified metric with host information.
@@ -100,3 +67,36 @@ class DatadogAPIHelper:
 
         """
         api.Metric.send(metric=metric, points=points, host=host)
+
+    def __load_slack_config(self):
+        parser = configparser.ConfigParser()
+        parser.read(os.getcwd() + '/config/datadog.ini')
+
+        if 'slack' not in parser:
+            logger.warning('Datadog: Slack notification setting is true, but the configuration cannot be found from the .ini file.')
+            self.does_notify_slack = False
+            return
+
+        s = parser['slack']
+        self.slack = slackweb.Slack(url=s.get('url'))
+
+        channel = s.get('channel') or '#general'
+        username = s.get('username') or 'Bot'
+        icon_emoji = s.get('icon_emoji') or ':ghost:'
+
+        self.slack_notify = partial(self.slack.notify,
+                                    channel=channel,
+                                    username=username,
+                                    icon_emoji=icon_emoji)
+
+    def __get_snapshot(self, start, end, query):
+        """Get a snapshot for the given query in the period.
+
+        Args:
+            start (int): Unix timestamp.
+            end (int): Unix timestamp.
+            query (string): Datadog query.
+
+        """
+        j = api.Graph.create(metric_query=query, start=start, end=end)
+        return j['snapshot_url']

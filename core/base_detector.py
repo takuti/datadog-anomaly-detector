@@ -94,9 +94,9 @@ class Detector:
                 logger.error(err)
                 sys.exit(1)
 
-            self.handle_series(section_name, series)
+            self.__handle_series(section_name, series)
 
-    def handle_series(self, section_name, series):
+    def __handle_series(self, section_name, series):
         for s in series:
             s['raw_value'] = 0.0 if s['raw_value'] is None else s['raw_value']
             try:
@@ -105,10 +105,10 @@ class Detector:
                 logger.error(err)
                 sys.exit(1)
 
-            record = self.get_record(s, score_outlier, score_change)
+            record = self.__get_record(s, score_outlier, score_change)
             event.Event(re.match('^datadog\.(.*)$', section_name).group(1), record)
 
-    def get_record(self, s, score_outlier, score_change):
+    def __get_record(self, s, score_outlier, score_change):
         return {'metric': s['src_metric'],
                 'snapshot_url': s['snapshot_url'],
                 'raw_value': s['raw_value'],
