@@ -32,11 +32,13 @@ class DatadogAPIHelper:
 
         if 'errors' in j:
             msg = 'Datadog: %s' % j['errors']
-            self.slack_notify(attachments=[{'text': msg, 'color': 'danger'}])
+            if self.does_notify_slack:
+                self.slack_notify(attachments=[{'text': msg, 'color': 'danger'}])
             raise RuntimeError(msg)
         if 'status' in j and j['status'] != 'ok':
             msg = 'Datadog: API status was NOT ok: %s' % j['status']
-            self.slack_notify(attachments=[{'text': msg, 'color': 'danger'}])
+            if self.does_notify_slack:
+                self.slack_notify(attachments=[{'text': msg, 'color': 'danger'}])
             raise RuntimeError(msg)
 
         series = []
