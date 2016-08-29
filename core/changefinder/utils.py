@@ -27,5 +27,11 @@ def aryule(c, k):
             a[i] /= self.c[0]
 
     """
+    a = np.zeros(k)
+
+    # ignore a singular matrix
     C = toeplitz(c[:k])
-    return np.dot(ln.inv(C), c[1:])
+    if not np.all(C == 0.0) and np.isfinite(ln.cond(C)):
+        a = np.dot(ln.inv(C), c[1:])
+
+    return a

@@ -29,3 +29,8 @@ class ChangeFinderUtilsTest(TestCase):
         assert_almost_equal(np.array([2.90380682, 0.31235631, 1.26463104,
                                       -3.30187384, -1.61653593, -2.10367317,
                                       1.37563117, 2.18139823, 0.02314717]), a)
+
+        c = np.array([0, 0, 0])
+        k = 2
+        a = aryule(c, k)
+        assert_almost_equal(np.array([0, 0]), a)
