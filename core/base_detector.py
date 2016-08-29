@@ -105,15 +105,17 @@ class Detector:
                 logger.error(err)
                 sys.exit(1)
 
+            s['dst_metric'] = re.match('^datadog\.(.*)$', section_name).group(1)
+
             record = self.__get_record(s, score_outlier, score_change)
-            event.Event(re.match('^datadog\.(.*)$', section_name).group(1), record)
+            event.Event(s['dst_metric'], record)
 
     def __get_record(self, s, score_outlier, score_change):
         return {'metric': s['src_metric'],
                 'snapshot_url': s['snapshot_url'],
                 'raw_value': s['raw_value'],
-                'metric_outlier': 'changefinder.outlier.' + s['src_metric'],
+                'metric_outlier': 'changefinder.outlier.' + s['dst_metric'],
                 'score_outlier': score_outlier,
-                'metric_change': 'changefinder.change.' + s['src_metric'],
+                'metric_change': 'changefinder.change.' + s['dst_metric'],
                 'score_change': score_change,
                 'time': int(s['time'] / 1000)}  # same as Ruby's unix time
