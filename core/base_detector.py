@@ -75,9 +75,13 @@ class Detector:
             self.dd_sections[section_name]['query'] = q
 
             r = s.getfloat('r') or 0.02
-            k = s.getint('k') or self.select_k(q)
             T1 = s.getint('T1') or 10
             T2 = s.getint('T2') or 5
+
+            k = s.getint('k')
+            if k is None:
+                k = self.select_k(q)
+                logger.info('[%s] `k` has been automatically set to %d' % (section_name, k))
 
             try:
                 self.dd_sections[section_name]['cf'] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
