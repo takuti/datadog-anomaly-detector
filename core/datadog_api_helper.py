@@ -43,15 +43,12 @@ class DatadogAPIHelper:
 
         series = []
 
-        snapshot_url = self.__get_snapshot(start, end, query)
-
         for d in j['series']:
             # p = [ timestamp, value ]
             series += [{'src_metric': d['metric'],
                         'scope': d['scope'],
                         'time': int(p[0]),
-                        'raw_value': p[1],
-                        'snapshot_url': snapshot_url
+                        'raw_value': p[1]
                         } for p in d['pointlist']]
 
         return sorted(series, key=lambda d: d['time'])

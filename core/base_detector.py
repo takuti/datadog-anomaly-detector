@@ -112,7 +112,6 @@ class Detector:
 
     def __get_record(self, s, score_outlier, score_change):
         return {'metric': s['src_metric'],
-                'snapshot_url': s['snapshot_url'],
                 'raw_value': s['raw_value'],
                 'metric_outlier': 'changefinder.outlier.' + s['dst_metric'],
                 'score_outlier': score_outlier,
