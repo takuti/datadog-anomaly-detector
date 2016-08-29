@@ -28,7 +28,6 @@ Our scores can be easily connected to Norikra by using [fluent-plugin-norikra](h
     <record>
       metric ${metric_outlier}
       value ${score_outlier}
-      host ${host}
       time ${record["time"]}
     </record>
   </store>
@@ -42,7 +41,6 @@ Our scores can be easily connected to Norikra by using [fluent-plugin-norikra](h
     <record>
       metric ${metric_change}
       value ${score_change}
-      host ${host}
       time ${record["time"]}
     </record>
   </store>
@@ -125,20 +123,20 @@ As a result, the fetched events can be passed everywhere you want via Fluentd. T
   username "Mr. ChangeFinder"
   icon_emoji :ghost:
   flush_interval 10s
-  message_keys metric,raw,change,outlier
-  message ":house: %s\n:chart_with_upwards_trend: Max Raw %s, Max Change %s, Max Outlier %s"
+  message_keys min_time,max_time,metric,raw,change,outlier
+  message ":clock1: [%s, %s]\n:house: %s\n:chart_with_upwards_trend: Max Raw %s, Max Change %s, Max Outlier %s"
 </match>
 ```
 
 ### 4. Replay anomaly detection with the previous data points
 
-If you test your queries and notification settings, you can use a replay script at `$HOME/datadog-anomaly-detector/dd_anomaly_detecto/replay.py`. Let us again go back to the directory:
+If you test your queries and notification settings, you can use a replay script at `$HOME/datadog-anomaly-detector/cli/replay.py`. Let us again go back to the directory:
 
 	$ cd $HOME/datadog-anomaly-detector
 
 You can run the script with command-line options as:
 
-	$ python dd_anomaly_detector/replay.py --start='2016-08-10 13:30' --end='2016-08-10 13:45'
+	$ python cli/replay.py --start='2016-08-10 13:30' --end='2016-08-10 13:45'
 
 Importantly, timezone for `start` and `end` options is UTC by default. For JST, you need to add an option `--timezone='Asia/Tokyo'`.
 

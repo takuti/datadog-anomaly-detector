@@ -7,7 +7,7 @@ Our implementation only supports 1D inputs for now.
 
 ## Model Selection
 
-We can specify hyperparameters of the ChangeFinder algorithm on the config file **config/datadog.ini**. Currently, there are four hyperparamters `r`, `k`, `T1` and `T2`, and you can use **dd_anomaly_detector/model_selection.py** to find optimal `k`. Finding the best `k` value is called **model selection**.
+We can specify hyperparameters of the ChangeFinder algorithm on the config file **config/datadog.ini**. Currently, there are four hyperparamters `r`, `k`, `T1` and `T2`, and you can use **cli/model_selection.py** to find optimal `k`. Finding the best `k` value is called **model selection**.
 
 For instance, when we have the following config file
 
@@ -30,23 +30,24 @@ For instance, when we have the following config file
 	T1: 10
 	T2: 5
 
-**dd_anomaly_detector/model_selection.py** finds optimal `k` for each query by replaying a specific date-time range as:
+**cli/model_selection.py** finds optimal `k` for each query by replaying a specific date-time range as:
 
-	$ python dd_anomaly_detector/model_selection.py --max_k=50 --start='2016-08-10 11:45' --end='2016-08-10 12:00'
+	$ python cli/model_selection.py --start='2016-08-10 11:45' --end='2016-08-10 12:00' --timezone='UTC'
 	[datadog.queue] avg:queue.system.running{*}
-					k = 6 (AIC = -3424.877639)
+		k = 9 (AIC = -3418.877639)
 	[datadog.cpu] system.load.norm.5{chef_environment:production,chef_role:worker6-staticip} by {host}
-					k = 5 (AIC = -116909.839743)
+		k = 7 (AIC = -185683.392533)
 
 Options are:
 
 - `--max_k` &mdash; Max value of possible `k`.
 - `--start` &mdash; Datetime replay from.
 - `--end`   &mdash; Datetime replay to.
+- `--timezone` &mdash; Timezone what you are assuming on `--start` and `--end` options.
 
 The result means that:
 
-- According to a replay trial for the data points from `2016-08-10 11:45` to `2016-08-10 12:00`
+- According to a replay trial for the data points from `2016-08-10 11:45 UTC` to `2016-08-10 12:00 UTC`
 	- for a config `[datadog.queue]`, `k = 6` is optimal in [1, 50]
 	- for a config `[datadog.cpu]`, `k = 5` is optimal in [1, 50]
 

@@ -1,6 +1,8 @@
 Datadog Anomaly Detector
 ===
 
+[![Build Status](https://travis-ci.org/takuti/datadog-anomaly-detector.svg?branch=master)](https://travis-ci.org/takuti/datadog-anomaly-detector)
+
 Get Datadog metrics and pass anomaly scores to Datadog itself via Fluentd.
 
 By integrating CEP engines such as [Esper](http://www.espertech.com/esper/) and [Norikra](http://norikra.github.io/), you can implement more practical applications as follows. We introduce it in **[doc/norikra.md](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/norikra.md)**.
@@ -16,11 +18,7 @@ By integrating CEP engines such as [Esper](http://www.espertech.com/esper/) and 
 
 ### Python packages
 
-- numpy
-- scipy
-- datadog
-- fluent-logger
-- python-daemon-3K
+See **requirements.txt**
 
 ## Basic Installation and Usage
 
@@ -44,7 +42,6 @@ Follow [Installation | Fluentd](http://docs.fluentd.org/categories/installation)
     <record>
       metric ${metric_outlier}
       value ${score_outlier}
-      host ${host}
       time ${record["time"]}
     </record>
   </store>
@@ -58,7 +55,6 @@ Follow [Installation | Fluentd](http://docs.fluentd.org/categories/installation)
     <record>
       metric ${metric_change}
       value ${score_change}
-      host ${host}
       time ${record["time"]}
     </record>
   </store>
@@ -121,7 +117,7 @@ T2: 5
 ...
 ```
 
-Note that `r`, `k`, `T1` and `T2` are the parameters of our machine learning algorithm. You can set different parameters for each query if you want. In particular, you can use **[dd_anomaly_detector/model_selection.py](https://github.com/takuti/datadog-anomaly-detector/blob/master/dd_anomaly_detector/model_selection.py)** to find optimal `k`. For more detail, see **[doc/changefinder.md#model-selection](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/changefinder.md#model-selection)**.
+Note that `r`, `k`, `T1` and `T2` are the parameters of our machine learning algorithm. You can set different parameters for each query if you want. In case that you do not write the parameters on the INI file, default parameters will be set. In particular, optimal `k` is chosen by a model selection logic as described in **[doc/changefinder.md#model-selection](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/changefinder.md#model-selection)**.
 
 ### 3. Start a detector daemon
 
@@ -130,7 +126,7 @@ In order to get Datadog metrics, we need to first set API and APP keys as enviro
 Now, we are ready to start a detector daemon as:
 
 ```
-$ python dd_anomaly_detector/daemonizer.py start > out.log 2> error.log
+$ python daemonizer.py start
 ```
 
 For the `.pid` file specified in `config/datadog.ini`, please make sure if the directories exist correctly and you have write permission for the path.
@@ -138,7 +134,7 @@ For the `.pid` file specified in `config/datadog.ini`, please make sure if the d
 You can stop the daemon as follows.
 
 ```
-$ python dd_anomaly_detector/daemonizer.py stop
+$ python daemonizer.py stop
 ```
 
 ## License
