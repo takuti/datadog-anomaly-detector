@@ -1,0 +1,9 @@
+click==6.6
+datadog==0.12.0
+fluent_logger==0.4.3
+numpy==1.11.0
+slackweb==1.0.5
+tzlocal==1.2.2
+python_daemon_3K=1.5.8
+pytz==2016.6.1
+scipy==0.18.0
