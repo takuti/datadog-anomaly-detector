@@ -1,7 +1,6 @@
 import numpy as np
-import numpy.linalg as ln
 
-from .utils import aryule
+from .utils import aryule_levinson
 
 from logging import getLogger
 logger = getLogger('ChangeFinder')
@@ -46,11 +45,8 @@ class SDAR_1D:
         self.c[0] = (1 - self.r) * self.c[0] + self.r * (x - self.mu) * (x - self.mu)  # c_0: x_t = x_{t-j}
         self.c[1:] = (1 - self.r) * self.c[1:] + self.r * (x - self.mu) * (xs[::-1][:self.k] - self.mu)
 
-        a = np.zeros(self.k)  # a_1, ..., a_k
-        try:
-            a = aryule(self.c, self.k)
-        except ln.LinAlgError:
-            logger.warning('Encountered a singular matrix. Your anomaly scores are probably wrong, so let you relaunch the script.')
+        # a_1, ..., a_k
+        a = aryule_levinson(self.c, self.k)
 
         # estimate x
         x_hat = np.dot(a, (xs[::-1][:self.k] - self.mu)) + self.mu

@@ -1,7 +1,6 @@
 import numpy as np
-import numpy.linalg as ln
 
-from .utils import aryule
+from .utils import aryule_levinson
 
 from logging import getLogger
 logger = getLogger('ChangeFinder')
@@ -49,11 +48,7 @@ class AR_1D:
             self.c[j] /= (t - self.k)
 
         # solve the Yule-Walker equation
-        a = np.zeros(self.k)  # a_1, ..., a_k
-        try:
-            a = aryule(self.c, self.k)
-        except ln.LinAlgError:
-            logger.warning('Encountered a singular matrix. Your anomaly scores are probably wrong, so please relaunch the script.')
+        a = aryule_levinson(self.c, self.k)
 
         # estimate sigma
         self.sigma = self.c[0]
