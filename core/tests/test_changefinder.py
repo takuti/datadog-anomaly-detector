@@ -44,17 +44,17 @@ class ChangeFinderBurgTest(TestCase):
 
     def setUp(self):
         # Octave outputs
-        self.c1 = np.array([1, 2, 3, 4, 5])
+        self.x1 = np.array([1, 2, 3, 4, 5])
         self.a1 = np.array([-1.86391, 0.95710])
 
-        self.c2 = np.array([143.85, 141.95, 141.45, 142.30, 140.60,
+        self.x2 = np.array([143.85, 141.95, 141.45, 142.30, 140.60,
                             140.00, 138.40, 137.10, 138.90, 139.85])
         self.a2 = np.array([-1.31033, 0.58569, -0.56058, 0.63859, -0.35334])
 
-        self.c3 = np.array([0, 0, 0, 0, 0])
+        self.x3 = np.array([0, 0, 0, 0, 0])
         self.a3 = np.array([0, 0])
 
     def test_arburg(self):
-        assert_almost_equal(self.a1, arburg(self.c1, 2), decimal=5)
-        assert_almost_equal(self.a2, arburg(self.c2, 5), decimal=5)
-        assert_almost_equal(self.a3, arburg(self.c3, 2))
+        assert_almost_equal(self.a1, arburg(self.x1, 2), decimal=5)
+        assert_almost_equal(self.a2, arburg(self.x2, 5), decimal=5)
+        assert_almost_equal(self.a3, arburg(self.x3, 2))
