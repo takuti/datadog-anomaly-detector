@@ -21,8 +21,7 @@ class SDAR_1D:
         self.k = k
 
         # initialize the parameters
-        self.mu = np.random.random()
-        self.sigma = np.random.random()
+        self.mu = self.sigma = 0.0
         self.c = np.zeros(self.k + 1)
 
     def update(self, x, xs):
@@ -81,11 +80,11 @@ class ChangeFinder:
         self.T2 = T2
 
         self.xs = np.zeros(k)
-        self.scores_outlier = np.zeros(T1)
+        self.outliers = np.zeros(T1)
         self.sdar_outlier = SDAR_1D(r, k)
 
         self.ys = np.zeros(k)
-        self.logloss_ys = np.zeros(T2)
+        self.changes = np.zeros(T2)
         self.sdar_change = SDAR_1D(r, k)
 
     def update(self, x):
@@ -100,29 +99,29 @@ class ChangeFinder:
         """
 
         # Stage 1: Outlier Detection (SDAR #1)
-        logloss_x = self.sdar_outlier.update(x, self.xs)
-        self.scores_outlier = self.add_one(logloss_x, self.scores_outlier, self.T1)
+        outlier = self.sdar_outlier.update(x, self.xs)
+        self.outliers = self.__append(self.outliers, outlier, self.T1)
 
-        self.xs = self.add_one(x, self.xs, self.k)
+        self.xs = self.__append(self.xs, x, self.k)
 
         # Smoothing when we have enough (>T) first scores
-        y = self.smoothing(self.scores_outlier)
+        y = self.__smooth(self.outliers)
 
         # Stage 2: Change Point Detection (SDAR #2)
-        logloss_y = self.sdar_change.update(y, self.ys)
-        self.logloss_ys = self.add_one(logloss_y, self.logloss_ys, self.T2)
+        change = self.sdar_change.update(y, self.ys)
+        self.changes = self.__append(self.changes, change, self.T2)
 
-        self.ys = self.add_one(y, self.ys, self.k)
+        self.ys = self.__append(self.ys, y, self.k)
 
         # Return outlier and change point scores
-        return logloss_x, self.smoothing(self.logloss_ys)
+        return outlier, self.__smooth(self.changes)
 
-    def add_one(self, x, window, window_size):
+    def __append(self, window, x, window_size):
         """Insert a sample x into a fix-sized window.
 
         Args:
-            x (float): A sample value.
             window (numpy array): Fixed sized window.
+            x (float): A sample value.
             window_size (int): Maximum size of the window.
 
         Returns:
@@ -137,7 +136,7 @@ class ChangeFinder:
 
         return window
 
-    def smoothing(self, window):
+    def __smooth(self, window):
         """Return a smoothed value of the current window.
 
         Args:
@@ -147,4 +146,4 @@ class ChangeFinder:
             float: A smoothed value of the given window.
 
         """
-        return 0.0 if window.size == 0 else np.sum(window) / window.size
+        return np.mean(window)
