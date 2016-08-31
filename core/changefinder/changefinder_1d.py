@@ -88,7 +88,7 @@ class ChangeFinder:
 
         self.ys = np.zeros(k)
         self.changes = np.zeros(T2)
-        self.sdar_change = SDAR_1D(r, k)
+        self.sdar_change = SDAR_1D(r / 2, k)
 
     def update(self, x):
         """Update AR models based on 1d input x.
