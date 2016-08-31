@@ -1,3 +1,4 @@
+import sys
 import time
 import configparser
 from daemon import runner
@@ -24,6 +25,10 @@ class ChangeFinderDaemon(Detector):
     def run(self):
         end = int(time.time())
         start = end - self.dd_api_interval
+
+        if len(self.dd_sections) * (3600 / self.dd_api_interval) > 300:
+            logger.error('Current configuration exceeds API rate limit. Try to reduce the number of queries or use longer interval.')
+            sys.exit(1)
 
         while True:
             logger.info(self.dd_sections)
