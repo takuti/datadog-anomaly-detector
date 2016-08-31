@@ -187,10 +187,10 @@ class ChangeFinder:
             it corresponds to a 1x1 covarriance matrix in a context of the AR model.
 
         Args:
-            sigma1 (float): Variance before update the model.
             mu1 (float): Mean before update the model.
-            sigma2 (float): Variance after update the model.
+            sigma1 (float): Variance before update the model.
             mu2 (float): Mean before after the model.
+            sigma2 (float): Variance after update the model.
 
         Returns:
             float: The Hellinger distance between the models {before, after} update.
