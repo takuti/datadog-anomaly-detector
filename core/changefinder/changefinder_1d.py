@@ -32,7 +32,7 @@ class SDAR_1D:
             xs (numpy array): `k` past points (..., t-k, ..., t-1).
 
         Returns:
-            float: Logloss for x.
+            float: Latest PDF for the given series.
 
         """
         assert xs.size >= self.k, 'size of xs must be greater or equal to the order of the AR model.'
@@ -53,10 +53,13 @@ class SDAR_1D:
         # estimate sigma
         self.sigma = (1 - self.r) * self.sigma + self.r * (x - x_hat) ** 2
 
-        # compute the probability density function
-        p = np.exp(-0.5 * (x - x_hat) ** 2 / self.sigma) / ((2 * np.pi) ** 0.5 * (self.sigma) ** 0.5)
+        # compute and return the value of probability density function
+        if self.sigma == 0.0:
+            return 0.0
 
-        return -np.log(p)
+        numerator = np.exp(-0.5 * (x - x_hat) ** 2 / self.sigma)
+        denominator = (2 * np.pi) ** 0.5 * (self.sigma) ** 0.5
+        return numerator / denominator
 
 
 class ChangeFinder:
@@ -99,7 +102,13 @@ class ChangeFinder:
         """
 
         # Stage 1: Outlier Detection (SDAR #1)
-        outlier = self.sdar_outlier.update(x, self.xs)
+        prev_mu, prev_sigma = self.sdar_outlier.mu, self.sdar_outlier.sigma
+        self.sdar_outlier.update(x, self.xs)
+
+        # compute outlier score
+        # outlier = self.__logloss(p)
+        outlier = self.__hellinger(prev_mu, prev_sigma,
+                                   self.sdar_outlier.mu, self.sdar_outlier.sigma)
         self.outliers = self.__append(self.outliers, outlier, self.T1)
 
         self.xs = self.__append(self.xs, x, self.k)
@@ -108,7 +117,13 @@ class ChangeFinder:
         y = self.__smooth(self.outliers)
 
         # Stage 2: Change Point Detection (SDAR #2)
-        change = self.sdar_change.update(y, self.ys)
+        prev_mu, prev_sigma = self.sdar_change.mu, self.sdar_change.sigma
+        self.sdar_change.update(y, self.ys)
+
+        # compute change score
+        # change = self.__logloss(p)
+        change = self.__hellinger(prev_mu, prev_sigma,
+                                  self.sdar_change.mu, self.sdar_change.sigma)
         self.changes = self.__append(self.changes, change, self.T2)
 
         self.ys = self.__append(self.ys, y, self.k)
@@ -147,3 +162,41 @@ class ChangeFinder:
 
         """
         return np.mean(window)
+
+    def __logloss(self, p):
+        """Return LogLoss for a given PDF p.
+
+        Args:
+            p (float): PDF.
+
+        Returns:
+            float: LogLoss for p.
+
+        """
+        if p == 0.0:
+            return 0.0
+
+        return -np.log(p)
+
+    def __hellinger(self, mu1, sigma1, mu2, sigma2):
+        """Return the Hellinger distance bwtween two PDFs p1 and p2.
+
+        PDF of AR model follows very similar distribution of the multivariate normal distributions.
+        - [normal distrubiton] `sigma` indicates std. deviation, and `sigma ** 2` is variance.
+        - [multivariate normal distribution] `sigma` itself is variance because
+            it corresponds to a 1x1 covarriance matrix in a context of the AR model.
+
+        Args:
+            sigma1 (float): Variance before update the model.
+            mu1 (float): Mean before update the model.
+            sigma2 (float): Variance after update the model.
+            mu2 (float): Mean before after the model.
+
+        Returns:
+            float: The Hellinger distance between the models {before, after} update.
+
+        """
+        if sigma1 + sigma2 == 0:
+            return 0
+
+        return 1 - sigma1 ** 0.25 * sigma2 ** 0.25 * np.exp(-0.25 * (mu1 - mu2) ** 2 / (sigma1 + sigma2)) / (((sigma1 + sigma2) / 2) ** 0.5)
