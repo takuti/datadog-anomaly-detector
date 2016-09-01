@@ -8,11 +8,11 @@ import numpy as np
 from utils import str2timestamp
 
 try:
-    from core.datadog_api_helper import DatadogAPIHelper
+    from core.datadog_client import DatadogClient
     from core.changefinder.ar_1d import ModelSelection
 except ImportError:
     sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
-    from core.datadog_api_helper import DatadogAPIHelper
+    from core.datadog_client import DatadogClient
     from core.changefinder.ar_1d import ModelSelection
 
 
@@ -37,8 +37,8 @@ def cli(max_k, start, end, timezone):
     for section_name in dd_section_names:
         dd_sections[section_name] = parser[section_name].get('query')
 
-    dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
-                          api_key=os.environ['DD_API_KEY'])
+    dd = DatadogClient(app_key=os.environ['DD_APP_KEY'],
+                       api_key=os.environ['DD_API_KEY'])
 
     selector = ModelSelection(max_k)
 

@@ -5,17 +5,17 @@ import sys
 import time
 
 try:
-    from core.datadog_api_helper import DatadogAPIHelper
+    from core.datadog_client import DatadogClient
 except ImportError:
     sys.path.append(os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  os.pardir), os.pardir))
-    from core.datadog_api_helper import DatadogAPIHelper
+    from core.datadog_client import DatadogClient
 
 
-class DatadogAPIHelperTest(TestCase):
+class DatadogClientTest(TestCase):
 
     def setUp(self):
-        self.dd = DatadogAPIHelper(os.environ['DD_APP_KEY'], os.environ['DD_API_KEY'])
+        self.dd = DatadogClient(os.environ['DD_APP_KEY'], os.environ['DD_API_KEY'])
         self.end = int(time.time())
         self.start = self.end - 300
         self.query = 'system.cpu.idle{*}by{host}'

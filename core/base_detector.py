@@ -10,7 +10,7 @@ import time
 import configparser
 import numpy as np
 
-from .datadog_api_helper import DatadogAPIHelper
+from .datadog_client import DatadogClient
 from .changefinder.ar_1d import ModelSelection
 from .changefinder.changefinder_1d import ChangeFinder
 
@@ -28,8 +28,8 @@ class Detector:
 
         sender.setup(fluent_tag_prefix)
 
-        self.dd = DatadogAPIHelper(app_key=os.environ['DD_APP_KEY'],
-                                   api_key=os.environ['DD_API_KEY'])
+        self.dd = DatadogClient(app_key=os.environ['DD_APP_KEY'],
+                                api_key=os.environ['DD_API_KEY'])
 
         # key: config's section_name
         # value: { query: (query string), cf: (ChangeFinder instance) }

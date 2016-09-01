@@ -8,7 +8,7 @@ from logging import getLogger
 logger = getLogger('ChangeFinder')
 
 
-class DatadogAPIHelper:
+class DatadogClient:
 
     def __init__(self, app_key, api_key, does_notify_slack=True):
         initialize(app_key=app_key, api_key=api_key)
