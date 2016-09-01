@@ -1,8 +1,6 @@
-import os
-import slackweb
-import configparser
-from functools import partial
 from datadog import initialize, api
+
+from .slack_client import SlackClient
 
 from logging import getLogger
 logger = getLogger('ChangeFinder')
@@ -17,7 +15,11 @@ class DatadogClient:
 
         # slack notification setting
         if does_notify_slack:
-            self.__load_slack_config()
+            try:
+                self.slack = SlackClient()
+            except RuntimeWarning:
+                logger.warning('Datadog: Slack notification setting is true, but the configuration cannot be found from the .ini file.')
+                self.does_notify_slack = False
 
     def get_series(self, start, end, query):
         """Get time series points.
@@ -33,12 +35,12 @@ class DatadogClient:
         if 'errors' in j:
             msg = 'Datadog: %s' % j['errors']
             if self.does_notify_slack:
-                self.slack_notify(attachments=[{'text': msg, 'color': 'danger'}])
+                self.slack.send_error(msg)
             raise RuntimeError(msg)
         if 'status' in j and j['status'] != 'ok':
             msg = 'Datadog: API status was NOT ok: %s' % j['status']
             if self.does_notify_slack:
-                self.slack_notify(attachments=[{'text': msg, 'color': 'danger'}])
+                self.slack.send_error(msg)
             raise RuntimeError(msg)
 
         series = []
@@ -66,27 +68,6 @@ class DatadogClient:
 
         """
         api.Metric.send(metric=metric, points=points, host=host)
-
-    def __load_slack_config(self):
-        parser = configparser.ConfigParser()
-        parser.read(os.getcwd() + '/config/datadog.ini')
-
-        if 'slack' not in parser:
-            logger.warning('Datadog: Slack notification setting is true, but the configuration cannot be found from the .ini file.')
-            self.does_notify_slack = False
-            return
-
-        s = parser['slack']
-        self.slack = slackweb.Slack(url=s.get('url'))
-
-        channel = s.get('channel') or '#general'
-        username = s.get('username') or 'Bot'
-        icon_emoji = s.get('icon_emoji') or ':ghost:'
-
-        self.slack_notify = partial(self.slack.notify,
-                                    channel=channel,
-                                    username=username,
-                                    icon_emoji=icon_emoji)
 
     def __get_snapshot(self, start, end, query):
         """Get a snapshot for the given query in the period.
