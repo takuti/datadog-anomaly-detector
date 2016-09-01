@@ -22,12 +22,14 @@ class ChangeFinderDaemon(Detector):
         self.pidfile_timeout = 5
 
         self.dd_api_interval = int(parser['general'].get('interval'))
+        self.dd_api_limit = min(int(parser['general'].get('limit')), 300)
 
     def run(self):
         end = int(time.time())
         start = end - self.dd_api_interval
 
-        if len(self.dd_sections) * (3600 / self.dd_api_interval) > 300:
+        n_api_per_hour = len(self.dd_sections) * (3600 / self.dd_api_interval)
+        if n_api_per_hour > self.dd_api_limit:
             msg = 'Current configuration exceeds API rate limit. Try to reduce the number of queries or use longer interval.'
             logger.warning(msg)
 
