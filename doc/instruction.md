@@ -17,52 +17,7 @@ Norikra:
 	$ norikra start --stats=/etc/norikra/norikra.json -l /var/log/norikra -Xmx2g --daemonize
 	$ norikra stop
 
-### 2. Configure monitored Datadog queries
-
-First, enter a directory which contains forked code and sample settings ([repository](https://github.com/takuti/datadog-anomaly-detector)).
-
-	$ cd $HOME/datadog-anomaly-detector
-
-We already have a config *datadog.ini* under a *config/* directory as:
-
-	$ cat config/datadog.ini
-	[general]
-	pidfile_path: /var/run/changefinder.pid
-
-	; Datadog API access interval (in sec. range)
-	interval: 600
-
-	[datadog.cpu]
-	query: system.load.norm.5{chef_environment:production,chef_role:worker6-staticip} by {host}
-
-	r: 0.02
-	k: 6
-	T1: 10
-	T2: 5
-
-	[datadog.queue]
-	query: avg:queue.system.running{*}
-
-	r: 0.02
-	k: 6
-	T1: 10
-	T2: 5
-
-You can insert a new config for a different query (metric) by creating a new **datadog.xxx** section as:
-
-```
-[datadog.add1]
-query: additional.metric.1{foo}
-
-r: 0.02
-k: 6
-T1: 10
-T2: 5
-
-...
-```
-
-Note that `r`, `k`, `T1` and `T2` are the parameters of our machine learning algorithm. You can set different parameters for each query if you want. In case that you do not write the parameters on the INI file, default parameters will be set. In particular, optimal `k` is chosen by a model selection logic as described in **[doc/changefinder.md#model-selection](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/changefinder.md#model-selection)**.
+### 2. [Configure monitored Datadog queries](https://github.com/takuti/datadog-anomaly-detector#2-configure-your-detector)
 
 ### 3. Run a daemon script
 

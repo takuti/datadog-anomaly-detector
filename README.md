@@ -5,7 +5,7 @@ Datadog Anomaly Detector
 
 Get Datadog metrics and pass anomaly scores to Datadog itself via Fluentd.
 
-By integrating CEP engines such as [Esper](http://www.espertech.com/esper/) and [Norikra](http://norikra.github.io/), you can implement more practical applications as follows. We introduce it in **[doc/norikra.md](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/norikra.md)**.
+By integrating CEP engines such as [Esper](http://www.espertech.com/esper/) and [Norikra](http://norikra.github.io/), you can implement more practical applications as the following picture illustrates. We introduce it in **[doc/norikra.md](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/norikra.md)**.
 
 ![system](https://raw.githubusercontent.com/takuti/datadog-anomaly-detector/master/doc/images/system.png "system")
 
@@ -103,7 +103,7 @@ Create `config/datadog.ini` as demonstrated in `config/example.ini`.
 	T1: 10
 	T2: 5
 
-You can insert a new config for a different query (metric) by creating a new **datadog.xxx** section as:
+You can insert a new config for a different query (metric) by creating a new **[datadog.xxx.yyy]** section as:
 
 ```
 [datadog.add1]
@@ -116,6 +116,8 @@ T2: 5
 
 ...
 ```
+
+Here, the above Fluentd configuration enables to create a new Datadog metrics **changefinder.outlier.xxx.yyy** and **changefinder.change.xxx.yyy*** for a configured section **[datadog.xxx.yyy]**. Since the names are very important to monitor the anomaly scores, you have to decide it carefully.
 
 Note that `r`, `k`, `T1` and `T2` are the parameters of our machine learning algorithm. You can set different parameters for each query if you want. In case that you do not write the parameters on the INI file, default parameters will be set. In particular, optimal `k` is chosen by a model selection logic as described in **[doc/changefinder.md#model-selection](https://github.com/takuti/datadog-anomaly-detector/blob/master/doc/changefinder.md#model-selection)**.
 
