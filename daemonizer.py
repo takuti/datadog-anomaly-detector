@@ -24,6 +24,13 @@ class ChangeFinderDaemon(Detector):
         self.dd_api_interval = int(parser['general'].get('interval'))
         self.dd_api_limit = min(int(parser['general'].get('limit')), 300)
 
+        self.is_available_slack = True
+        try:
+            self.slack = SlackClient()
+        except RuntimeWarning:
+            logger.warning('Failed Slack notification because the configuration cannot be found from the .ini file.')
+            self.is_available_slack = False
+
     def run(self):
         end = int(time.time())
         start = end - self.dd_api_interval
@@ -31,12 +38,11 @@ class ChangeFinderDaemon(Detector):
         n_api_per_hour = len(self.dd_sections) * (3600 / self.dd_api_interval)
         if n_api_per_hour > self.dd_api_limit:
             msg = 'Current configuration exceeds API rate limit. Try to reduce the number of queries or use longer interval.'
+
             logger.warning(msg)
 
-            try:
-                SlackClient().send_warning(msg)
-            except RuntimeWarning:
-                logger.warning('Failed Slack notification because the configuration cannot be found from the .ini file.')
+            if self.is_available_slack:
+                self.slack.send_warning(msg)
 
             sys.exit(1)
 
