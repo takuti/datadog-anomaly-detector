@@ -41,7 +41,7 @@ def aryule_levinson(c, k):
     v = c[0] * (1 - g * g)
 
     for t in range(1, k):
-        g = -(c[t + 1] + np.dot(a, c[1:(t + 1)][::-1])) / v
+        g = 0 if v == 0 else -(c[t + 1] + np.dot(a, c[1:(t + 1)][::-1])) / v
         a = np.append(a + g * a[:t][::-1], g)
         v = v * (1 - np.dot(g, g))
 
