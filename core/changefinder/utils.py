@@ -37,15 +37,34 @@ def aryule_levinson(c, k):
 
     # recursively solve the Yule-Walker equation
     g = -c[1] / c[0]
-    a = np.array([g])
+    a = np.zeros(k)
+    a[0] = g
     v = c[0] * (1 - g * g)
 
     for t in range(1, k):
-        g = 0 if v == 0 else -(c[t + 1] + np.dot(a, c[1:(t + 1)][::-1])) / v
-        a = np.append(a + g * a[:t][::-1], g)
-        v = v * (1 - np.dot(g, g))
+        if v == 0:
+            continue
 
-    return -a
+        g = -c[t + 1]
+        for j in range(t):
+            g -= (a[j] * c[t - j])
+        g /= v
+
+        a_ = np.zeros(t)
+        for j in range(t):
+            a_[j] = a[t - 1 - j]
+
+        for j in range(t):
+            a[j] += (g * a_[j])
+        a[t] = g
+
+        v *= (1 - g * g)
+
+    a_ = np.zeros(k)
+    for i in range(k):
+        a_[i] = -a[i]
+
+    return a_
 
 
 def arburg(x, k):
@@ -54,39 +73,52 @@ def arburg(x, k):
     cf. https://searchcode.com/codesearch/view/9503568/
 
     """
-
-    def sumsq(x):
-        return np.sum(x * x)
-
     n = x.size
     # v = sumsq(x)
 
     # f and b are the forward and backward error sequences
-    f = x[1:n]
-    b = x[:(n - 1)]
+    f = np.zeros(n - 1)  # x[1:n]
+    for i in range(n - 1):
+        f[i] = x[i + 1]
 
-    a = np.array([])
+    b = np.zeros(n - 1)  # x[:(n - 1)]
+    for i in range(n - 1):
+        b[i] = x[i]
+
+    a = np.zeros(k)
 
     # remaining stages i=2 to p
     for i in range(k):
 
         # get the i-th reflection coefficient
-        denominator = sumsq(f) + sumsq(b)
-        g = 0 if denominator == 0 else 2 * np.sum(f * b) / denominator
+        numerator = denominator = 0
+        for j in range(f.size):
+            numerator += (f[j] * b[j])
+            denominator += (f[j] * f[j] + b[j] * b[j])
+        numerator *= 2
+
+        g = 0 if denominator == 0 else numerator / denominator
 
         # generate next filter order
-        if i == 0:
-            a = np.array([g])
-        else:
-            a = np.append(g, a - g * a[:(i)][::-1])
+        a_ = np.array([a[j] for j in range(i)])
+        a[0] = g
+        for j in range(i):
+            a[j + 1] = a_[j] - g * a_[i - 1 - j]
 
         # keep track of the error
         # v = v * (1 - g * g)
 
         # update the prediction error sequences
-        old_f = np.empty_like(f)
-        old_f[:] = f
-        f = old_f[1:(n - i - 1)] - g * b[1:(n - i - 1)]
-        b = b[:(n - i - 2)] - g * old_f[:(n - i - 2)]
+        f_ = np.array([fi for fi in f])
+        b_ = np.array([bi for bi in b])
+        m = n - i - 2
 
-    return -a[:k][::-1]
+        f = np.zeros(m)
+        for j in range(m):
+            f[j] = f_[j + 1] - g * b[j + 1]
+
+        b = np.zeros(m)
+        for j in range(m):
+            b[j] = b_[j] - g * f_[j]
+
+    return np.array([-a[k - 1 - i] for i in range(k)])
