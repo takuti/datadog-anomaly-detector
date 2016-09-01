@@ -1,4 +1,3 @@
-import sys
 import time
 import configparser
 from daemon import runner
@@ -40,24 +39,34 @@ class ChangeFinderDaemon(Detector):
             msg = 'Current configuration exceeds API rate limit. Try to reduce the number of queries or use longer interval.'
 
             logger.warning(msg)
-
             if self.is_available_slack:
                 self.slack.send_warning(msg)
 
-            sys.exit(1)
-
         while True:
-            logger.info(self.dd_sections)
+            try:
+                # incorporate new queries which were inserted during the interval
+                self.load_dd_config()
+                logger.info(self.dd_sections)
 
-            self.query(start, end)
+                self.query(start, end)
 
-            start = end + 1
-            end = int(time.time())
+                start = end + 1
+                end = int(time.time())
 
-            time.sleep(self.dd_api_interval)
+                time.sleep(self.dd_api_interval)
+            except Exception as err:
+                logger.error(err)
 
-            # incorporate new queries which were inserted during the interval
-            self.load_dd_config()
+                msg = 'Daemon starts idling due to an exception. Back to active 1 hour later. You must resolve an issue or restart a daemon.'
+                logger.warning(msg)
+                if self.is_available_slack:
+                    self.slack.send_warning('%s\n---\n%s' % (err, msg))
+
+                # 1h idling
+                time.sleep(3600)
+
+                end = int(time.time())
+                start = end - self.dd_api_interval
 
 
 if __name__ == '__main__':

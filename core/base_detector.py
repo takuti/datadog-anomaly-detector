@@ -5,7 +5,6 @@ from fluent import event
 
 import re
 import os
-import sys
 import time
 import configparser
 import numpy as np
@@ -40,11 +39,7 @@ class Detector:
         end = int(time.time())
         start = end - (60 * 60 * 24)  # one day interval
 
-        try:
-            series = self.dd.get_series(start, end, query)
-        except RuntimeError as err:
-            logger.error(err)
-            sys.exit(1)
+        series = self.dd.get_series(start, end, query)
 
         x = np.array([(0.0 if s['raw_value'] is None else s['raw_value']) for s in series])
         return ModelSelection().select(x)[0]
@@ -83,31 +78,19 @@ class Detector:
                 k = self.select_k(q)
                 logger.info('[%s] `k` has been automatically set to %d' % (section_name, k))
 
-            try:
-                self.dd_sections[section_name]['cf'] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
-            except AssertionError as err:
-                logger.error(err)
-                sys.exit(1)
+            self.dd_sections[section_name]['cf'] = ChangeFinder(r=r, k=k, T1=T1, T2=T2)
 
     def query(self, start, end):
         for section_name in self.dd_sections.keys():
-            try:
-                series = self.dd.get_series(start, end,
-                                            self.dd_sections[section_name]['query'])
-            except RuntimeError as err:
-                logger.error(err)
-                sys.exit(1)
+            series = self.dd.get_series(start, end,
+                                        self.dd_sections[section_name]['query'])
 
             self.__handle_series(section_name, series)
 
     def __handle_series(self, section_name, series):
         for s in series:
             s['raw_value'] = 0.0 if s['raw_value'] is None else s['raw_value']
-            try:
-                score_outlier, score_change = self.dd_sections[section_name]['cf'].update(s['raw_value'])
-            except AssertionError as err:
-                logger.error(err)
-                sys.exit(1)
+            score_outlier, score_change = self.dd_sections[section_name]['cf'].update(s['raw_value'])
 
             s['dst_metric'] = re.match('^datadog\.(.*)$', section_name).group(1)
 
