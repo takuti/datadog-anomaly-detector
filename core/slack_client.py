@@ -15,6 +15,9 @@ class SlackClient:
     def send_error(self, msg):
         self.slack_notifier(attachments=[{'text': msg, 'color': 'danger'}])
 
+    def send_warning(self, msg):
+        self.slack_notifier(attachments=[{'text': msg, 'color': 'warning'}])
+
     def __load_config(self):
         parser = configparser.ConfigParser()
         parser.read(os.getcwd() + '/config/datadog.ini')

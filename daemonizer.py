@@ -5,6 +5,7 @@ from daemon import runner
 from logging import getLogger, FileHandler, Formatter, INFO
 
 from core.base_detector import Detector
+from core.slack_client import SlackClient
 
 
 class ChangeFinderDaemon(Detector):
@@ -27,7 +28,14 @@ class ChangeFinderDaemon(Detector):
         start = end - self.dd_api_interval
 
         if len(self.dd_sections) * (3600 / self.dd_api_interval) > 300:
-            logger.error('Current configuration exceeds API rate limit. Try to reduce the number of queries or use longer interval.')
+            msg = 'Current configuration exceeds API rate limit. Try to reduce the number of queries or use longer interval.'
+            logger.warning(msg)
+
+            try:
+                SlackClient().send_warning(msg)
+            except RuntimeWarning:
+                logger.warning('Failed Slack notification because the configuration cannot be found from the .ini file.')
+
             sys.exit(1)
 
         while True:
