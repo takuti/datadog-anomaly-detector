@@ -1,0 +1,107 @@
+From d72d8e2fea27fc694c556186bbdfacc673ceba7b Mon Sep 17 00:00:00 2001
+From: Takuya Kitazawa <k.takuti@gmail.com>
+Date: Thu, 1 Sep 2016 13:37:21 +0900
+Subject: [PATCH] Add Datadog integration code * Emit event for a record * Take
+ a snapshot with the event
+
+---
+ lib/fluent/plugin/out_slack.rb | 45 ++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 43 insertions(+), 2 deletions(-)
+
+diff --git a/lib/fluent/plugin/out_slack.rb b/lib/fluent/plugin/out_slack.rb
+index 6af332e..b2829c2 100644
+--- a/lib/fluent/plugin/out_slack.rb
++++ b/lib/fluent/plugin/out_slack.rb
+@@ -19,11 +19,15 @@ module Fluent
+     config_set_default :include_time_key, true
+     config_set_default :include_tag_key, true
+ 
++    config_param :dd_api_key, :string
++    config_param :dd_app_key, :string, :default => nil
++
+     desc <<-DESC
+ Incoming Webhook URI (Required for Incoming Webhook mode).
+ See: https://api.slack.com/incoming-webhooks
+ DESC
+     config_param :webhook_url,          :string, default: nil
++
+     desc <<-DESC
+ Slackbot URI (Required for Slackbot mode).
+ See https://api.slack.com/slackbot.
+@@ -125,12 +129,14 @@ DESC
+     def initialize
+       super
+       require 'uri'
++      require 'dogapi'
++      require 'fastimage'
+     end
+ 
+     def configure(conf)
+       conf['time_format'] ||= '%H:%M:%S' # old version compatiblity
+       conf['localtime'] ||= true unless conf['utc']
+- 
++
+       super
+ 
+       @channel = URI.unescape(@channel) # old version compatibility
+@@ -214,6 +220,8 @@ DESC
+         raise Fluent::ConfigError, "`token` parameter is required to use `auto_channels_create`" unless @token
+         @post_message_opts = {auto_channels_create: true}
+       end
++
++      @dog = Dogapi::Client.new(@dd_api_key, @dd_app_key)
+     end
+ 
+     def format(tag, time, record)
+@@ -332,8 +340,10 @@ DESC
+     end
+ 
+     def build_message(record)
++      dd_emit_event(record["metric"], record["start_ts"], record["end_ts"])
++      url = dd_take_snapshot(record["metric"], record["start_ts"], record["end_ts"])
+       values = fetch_keys(record, @message_keys)
+-      @message % values
++      @message % values + url
+     end
+ 
+     def build_title(record)
+@@ -360,5 +370,36 @@ DESC
+         end
+       end
+     end
++
++    def dd_emit_event(metric, start_ts, end_ts)
++      res = dog.emit_event(
++        Dogapi::Event.new(metric,
++                          :msg_title => "ChangeFinder Detected Anomaly",
++                          :date_happened => (start_ts + end_ts) / 2,
++                          :tags => ["changefinder"])
++      )
++
++      # need to wait until the event is available
++      event_id = res[1]["event"]["id"]
++      sleep(1) until dog.get_event(event_id)[0] == "200"
++    end
++
++    def dd_take_snapshot(metric, start_ts, end_ts)
++      begin
++        res = @dog.graph_snapshot("#{metric}{*}", start_ts, end_ts, "tags:changefinder")
++        if res[0] == "200"
++          url = res[1]["snapshot_url"]
++
++          # need to wait until the snapshot has been taken completely
++          sleep(1) until FastImage.new(url).content_length > 1024
++
++          url
++        else
++          nil
++        end
++      rescue
++        nil
++      end
++    end
+   end
+ end
+-- 
+2.9.2
+
