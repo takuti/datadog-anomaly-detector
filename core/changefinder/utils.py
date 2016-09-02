@@ -77,12 +77,11 @@ def arburg(x, k):
     # v = sumsq(x)
 
     # f and b are the forward and backward error sequences
-    f = np.zeros(n - 1)  # x[1:n]
-    for i in range(n - 1):
+    current_errseq_size = n - 1
+    f = np.zeros(current_errseq_size)  # x[1:n]
+    b = np.zeros(current_errseq_size)  # x[:(n - 1)]
+    for i in range(current_errseq_size):
         f[i] = x[i + 1]
-
-    b = np.zeros(n - 1)  # x[:(n - 1)]
-    for i in range(n - 1):
         b[i] = x[i]
 
     a = np.zeros(k)
@@ -92,7 +91,7 @@ def arburg(x, k):
 
         # get the i-th reflection coefficient
         numerator = denominator = 0
-        for j in range(f.size):
+        for j in range(current_errseq_size):
             numerator += (f[j] * b[j])
             denominator += (f[j] * f[j] + b[j] * b[j])
         numerator *= 2
@@ -110,15 +109,11 @@ def arburg(x, k):
 
         # update the prediction error sequences
         f_ = np.array([fi for fi in f])
-        b_ = np.array([bi for bi in b])
-        m = n - i - 2
-
-        f = np.zeros(m)
-        for j in range(m):
+        next_errseq_size = n - i - 2
+        for j in range(next_errseq_size):
             f[j] = f_[j + 1] - g * b[j + 1]
+            b[j] = b[j] - g * f_[j]
 
-        b = np.zeros(m)
-        for j in range(m):
-            b[j] = b_[j] - g * f_[j]
+        current_errseq_size = next_errseq_size
 
     return np.array([-a[k - 1 - i] for i in range(k)])
