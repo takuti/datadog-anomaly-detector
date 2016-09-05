@@ -212,6 +212,6 @@ class ChangeFinder:
 
         """
         if sigma1 + sigma2 == 0:
-            return 0
+            return 1
 
         return 1 - sigma1 ** 0.25 * sigma2 ** 0.25 * np.exp(-0.25 * (mu1 - mu2) ** 2 / (sigma1 + sigma2)) / (((sigma1 + sigma2) / 2) ** 0.5)
