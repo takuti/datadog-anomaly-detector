@@ -121,6 +121,7 @@ class ChangeFinder:
             self.sdar_outlier.update(x, self.xs)
             outlier = self.__hellinger(prev_mu, prev_sigma,
                                        self.sdar_outlier.mu, self.sdar_outlier.sigma)
+            outlier *= 100
 
         self.outliers = self.__append(self.outliers, outlier, self.T1)
 
@@ -138,6 +139,7 @@ class ChangeFinder:
             self.sdar_change.update(y, self.ys)
             change = self.__hellinger(prev_mu, prev_sigma,
                                       self.sdar_change.mu, self.sdar_change.sigma)
+            change *= 100
 
         self.changes = self.__append(self.changes, change, self.T2)
 
