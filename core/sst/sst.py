@@ -87,11 +87,11 @@ class SingularSpectrumTransformation:
 
         k = 2 * self.r if self.r % 2 == 0 else 2 * self.r - 1
         T = self.lanczos(np.dot(H, H.T), Q[:, 0], k)
-        eigvals, eigvecs = ln.eigh(T)
+        eigvals, eigvecs = ln.eig(T)
 
-        # `eigh()` returns eigenvalues in ascending order,
-        # so the last-r eigenvectors should be picked up instead of top-k
-        return 1 - np.sqrt(np.sum(eigvecs[0, (k - self.r):] ** 2))
+        # `eig()` returns unordered eigenvalues,
+        # so the top-r eigenvectors should be picked carefully
+        return 1 - np.sqrt(np.sum(eigvecs[0, np.argsort(eigvals)[::-1][:self.r]] ** 2))
 
     def lanczos(self, C, a, s):
         a0 = np.zeros_like(a)
