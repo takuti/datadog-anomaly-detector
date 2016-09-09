@@ -69,3 +69,52 @@ class SingularSpectrumTransformation:
                    full_matrices=False, compute_uv=False)
 
         return 1 - s[0]
+
+    def score_lanczos(self, xs_past, xs_current):
+        assert xs_past.size == self.n_past, 'lack of past samples'
+        assert xs_current.size == self.n_current, 'lack of current samples'
+
+        # Create past trajectory matrix and find its left singular vectors
+        H = np.zeros((self.w, self.n))
+        for i in range(self.n):
+            H[:, i] = xs_past[i:(i + self.w)]
+
+        # Create current trajectory matrix and find its left singular vectors
+        G = np.zeros((self.w, self.m))
+        for i in range(self.m):
+            G[:, i] = xs_current[i:(i + self.w)]
+        Q, _, _ = ln.svd(G, full_matrices=False)  # e.g. Power method
+
+        k = 2 * self.r if self.r % 2 == 0 else 2 * self.r - 1
+        T = self.lanczos(np.dot(H, H.T), Q[:, 0], k)
+        eigvals, eigvecs = ln.eigh(T)
+
+        # `eigh()` returns eigenvalues in ascending order,
+        # so the last-r eigenvectors should be picked up instead of top-k
+        return 1 - np.sqrt(np.sum(eigvecs[0, (k - self.r):] ** 2))
+
+    def lanczos(self, C, a, s):
+        a0 = np.zeros_like(a)
+        beta0 = 1
+        r = np.empty_like(a)
+        r[:] = a
+
+        T = np.zeros((s, s))
+
+        for j in range(s):
+            a1 = r / beta0
+            Ca1 = np.dot(C, a1)
+            alpha1 = np.dot(a1, Ca1)
+            r = Ca1 - alpha1 * a1 - beta0 * a0
+            beta1 = ln.norm(r)
+
+            T[j, j] = alpha1
+            if j - 1 >= 0:
+                T[j, j - 1] = beta0
+            if j + 1 < s:
+                T[j, j + 1] = beta1
+
+            a0[:] = a1
+            beta0 = beta1
+
+        return T
