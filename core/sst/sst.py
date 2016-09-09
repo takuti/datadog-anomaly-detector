@@ -26,6 +26,9 @@ class SingularSpectrumTransformation:
         self.n_past = w + self.n  # = 2 * w
         self.n_current = w + self.m
 
+        q = np.random.normal(size=self.m)
+        self.q = q / ln.norm(q)
+
     def score(self, xs_past, xs_current):
         """Compute a change-point score for given past/current patterns.
 
@@ -83,10 +86,17 @@ class SingularSpectrumTransformation:
         G = np.zeros((self.w, self.m))
         for i in range(self.m):
             G[:, i] = xs_current[i:(i + self.w)]
-        Q, _, _ = ln.svd(G, full_matrices=False)  # e.g. Power method
+
+        # Power method
+        GG = np.dot(G.T, G)
+        for i in range(1):  # fixed number of iteration may lead failure depending on r
+            self.q = np.dot(GG, self.q)
+        v = self.q / ln.norm(self.q)
+        Gv = np.dot(G, v)
+        self.q = Gv / ln.norm(Gv)  # assuming m = w
 
         k = 2 * self.r if self.r % 2 == 0 else 2 * self.r - 1
-        T = self.lanczos(np.dot(H, H.T), Q[:, 0], k)
+        T = self.lanczos(np.dot(H, H.T), self.q, k)
         eigvals, eigvecs = ln.eig(T)
 
         # `eig()` returns unordered eigenvalues,
