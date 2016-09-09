@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
 from fluent import sender
-from fluent import event
 
 import re
 import os
@@ -25,7 +24,7 @@ class Detector:
     def __init__(self, fluent_tag_prefix):
         self.ini_path = os.getcwd() + '/config/datadog.ini'
 
-        sender.setup(fluent_tag_prefix)
+        self.fluent_logger = sender.FluentSender(fluent_tag_prefix)
 
         self.dd = DatadogClient(app_key=os.environ['DD_APP_KEY'],
                                 api_key=os.environ['DD_API_KEY'])
@@ -95,7 +94,10 @@ class Detector:
             s['dst_metric'] = re.match('^datadog\.(.*)$', section_name).group(1)
 
             record = self.__get_record(s, score_outlier, score_change)
-            event.Event(s['dst_metric'], record)
+
+            if not self.fluent_logger.emit(s['dst_metric'], record):
+                logger.error('fluent-logger: ' + str(self.fluent_logger.last_error))
+                self.fluent_logger.clear_last_error()
 
     def __get_record(self, s, score_outlier, score_change):
         return {'metric': s['src_metric'],
