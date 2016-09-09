@@ -4,7 +4,7 @@ import numpy.linalg as ln
 
 class SingularSpectrumTransformation:
 
-    def __init__(self, w, r):
+    def __init__(self, w, r=3):
         """Change-point detection based on Singular Spectrum Transformation (SST),
 
         Args:
