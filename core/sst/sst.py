@@ -1,6 +1,8 @@
 import numpy as np
 import numpy.linalg as ln
 
+from .utils import power1, lanczos, tridiag_eig
+
 
 class SingularSpectrumTransformation:
 
@@ -88,92 +90,16 @@ class SingularSpectrumTransformation:
         """Compute change-point score using the Lanczos method.
 
         """
-        # Power method
-        GG = np.dot(G.T, G)
-        for i in range(1):  # fixed number of iteration may lead failure depending on r
-            self.q = np.dot(GG, self.q)
-        v = self.q / ln.norm(self.q)
-        Gv = np.dot(G, v)
-        self.q = Gv / ln.norm(Gv)  # assuming m = w
+        # assuming m = w
+        self.q, _, _ = power1(G, self.q, n_iter=1)
 
         k = 2 * self.r if self.r % 2 == 0 else 2 * self.r - 1
-        T = self.__lanczos(np.dot(H, H.T), self.q, k)
+        T = lanczos(np.dot(H, H.T), self.q, k)
 
         # find eigenvectors and eigenvalues of T
         # eigvals, eigvecs = ln.eig(T)
-        eigvals, eigvecs = self.__eig_qr(T, n_iter=1)
+        eigvals, eigvecs = tridiag_eig(T, n_iter=1)
 
         # `eig()` returns unordered eigenvalues,
         # so the top-r eigenvectors should be picked carefully
         return 1 - np.sqrt(np.sum(eigvecs[0, np.argsort(eigvals)[::-1][:self.r]] ** 2))
-
-    def __lanczos(self, C, a, s):
-        """Lanczos method: tridiagonalize a symmetric matrix C to s * s matrix T.
-
-        Args:
-            C (numpy array): Target matrix applied tridiagonalization.
-            a (numpy array): Initial vector (r).
-            s (int): Size of the returned tridiagonal matrix T.
-
-        Returns:
-            (numpy array): s * s tridiagonal matrix.
-
-        """
-        a0 = np.zeros_like(a)
-        beta0 = 1
-        r = np.empty_like(a)
-        r[:] = a
-
-        T = np.zeros((s, s))
-
-        for j in range(s):
-            a1 = r / beta0
-            Ca1 = np.dot(C, a1)
-            alpha1 = np.dot(a1, Ca1)
-            r = Ca1 - alpha1 * a1 - beta0 * a0
-            beta1 = ln.norm(r)
-
-            T[j, j] = alpha1
-            if j - 1 >= 0:
-                T[j, j - 1] = beta0
-            if j + 1 < s:
-                T[j, j + 1] = beta1
-
-            a0[:] = a1
-            beta0 = beta1
-
-        return T
-
-    def __eig_qr(self, T, n_iter=-1, tol=1e-3):
-        """Find eigenvalues and eigenvectors of given symmetric (tridiagonal) matrix T.
-
-        http://web.csulb.edu/~tgao/math423/s94.pdf
-        http://stats.stackexchange.com/questions/20643/finding-matrix-eigenvectors-using-qr-decomposition
-
-        TODO: Efficiency improvement (e.g. each QR decomposition)
-
-        Args:
-            T (numpy array): Target tridiagonal matrix.
-            n_iter (int): If it is greater than zero, repeat QR decomposition `n_iter` times.
-            tol (float): If `n_iter` is not greater than zero, repeat QR decomposition
-                until the target matrix converges to diagonal matrix (i.e. all off-diagonal elements are less than `tol`).
-
-        Returns:
-            (numpy array) Estimated eigenvalues of T.
-            (numpy array) Estimated eigenvectors of T.
-
-        """
-        eigvecs = np.identity(T.shape[0])
-
-        if n_iter > 0:
-            for i in range(n_iter):
-                Q, R = ln.qr(T)
-                T = np.dot(R, Q)
-                eigvecs = np.dot(eigvecs, Q)
-        else:
-            while not np.all((T - np.diag(np.diag(T)) < tol)):
-                Q, R = ln.qr(T)
-                T = np.dot(R, Q)
-                eigvecs = np.dot(eigvecs, Q)
-
-        return np.diag(T), eigvecs
