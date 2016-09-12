@@ -29,12 +29,13 @@ class SingularSpectrumTransformation:
         q = np.random.normal(size=self.m)
         self.q = q / ln.norm(q)
 
-    def score(self, xs_past, xs_current):
+    def score(self, xs_past, xs_current, is_lanczos=True):
         """Compute a change-point score for given past/current patterns.
 
         Args:
             xs_past (numpy array): Array of points for the `past` widows.
             xs_current (numpy array): Array of points for the `current` windows.
+            is_lanczos (boolean): Choose whether a socore has to be computed efficiently by using the Lanczos method.
 
             The past/current points are stored as:
                 old <--> new:
@@ -59,12 +60,22 @@ class SingularSpectrumTransformation:
         H = np.zeros((self.w, self.n))
         for i in range(self.n):
             H[:, i] = xs_past[i:(i + self.w)]
-        U, _, _ = ln.svd(H, full_matrices=False)
 
         # Create current trajectory matrix and find its left singular vectors
         G = np.zeros((self.w, self.m))
         for i in range(self.m):
             G[:, i] = xs_current[i:(i + self.w)]
+
+        if is_lanczos:
+            return self.__compute_lanczos(H, G)
+        else:
+            return self.__compute_svd(H, G)
+
+    def __compute_svd(self, H, G):
+        """Compute change-point score using SVD.
+
+        """
+        U, _, _ = ln.svd(H, full_matrices=False)
         Q, _, _ = ln.svd(G, full_matrices=False)
 
         # find the largest singular value for `r` principal component
@@ -73,20 +84,10 @@ class SingularSpectrumTransformation:
 
         return 1 - s[0]
 
-    def score_lanczos(self, xs_past, xs_current):
-        assert xs_past.size == self.n_past, 'lack of past samples'
-        assert xs_current.size == self.n_current, 'lack of current samples'
+    def __compute_lanczos(self, H, G):
+        """Compute change-point score using the Lanczos method.
 
-        # Create past trajectory matrix and find its left singular vectors
-        H = np.zeros((self.w, self.n))
-        for i in range(self.n):
-            H[:, i] = xs_past[i:(i + self.w)]
-
-        # Create current trajectory matrix and find its left singular vectors
-        G = np.zeros((self.w, self.m))
-        for i in range(self.m):
-            G[:, i] = xs_current[i:(i + self.w)]
-
+        """
         # Power method
         GG = np.dot(G.T, G)
         for i in range(1):  # fixed number of iteration may lead failure depending on r
@@ -96,17 +97,28 @@ class SingularSpectrumTransformation:
         self.q = Gv / ln.norm(Gv)  # assuming m = w
 
         k = 2 * self.r if self.r % 2 == 0 else 2 * self.r - 1
-        T = self.lanczos(np.dot(H, H.T), self.q, k)
+        T = self.__lanczos(np.dot(H, H.T), self.q, k)
 
         # find eigenvectors and eigenvalues of T
         # eigvals, eigvecs = ln.eig(T)
-        eigvals, eigvecs = self.eig_qr(T, n_iter=1)
+        eigvals, eigvecs = self.__eig_qr(T, n_iter=1)
 
         # `eig()` returns unordered eigenvalues,
         # so the top-r eigenvectors should be picked carefully
         return 1 - np.sqrt(np.sum(eigvecs[0, np.argsort(eigvals)[::-1][:self.r]] ** 2))
 
-    def lanczos(self, C, a, s):
+    def __lanczos(self, C, a, s):
+        """Lanczos method: tridiagonalize a symmetric matrix C to s * s matrix T.
+
+        Args:
+            C (numpy array): Target matrix applied tridiagonalization.
+            a (numpy array): Initial vector (r).
+            s (int): Size of the returned tridiagonal matrix T.
+
+        Returns:
+            (numpy array): s * s tridiagonal matrix.
+
+        """
         a0 = np.zeros_like(a)
         beta0 = 1
         r = np.empty_like(a)
@@ -132,7 +144,7 @@ class SingularSpectrumTransformation:
 
         return T
 
-    def eig_qr(self, T, n_iter=-1, tol=1e-3):
+    def __eig_qr(self, T, n_iter=-1, tol=1e-3):
         """Find eigenvalues and eigenvectors of given symmetric (tridiagonal) matrix T.
 
         http://web.csulb.edu/~tgao/math423/s94.pdf
