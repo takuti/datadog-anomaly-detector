@@ -97,7 +97,10 @@ class SingularSpectrumTransformation:
 
         k = 2 * self.r if self.r % 2 == 0 else 2 * self.r - 1
         T = self.lanczos(np.dot(H, H.T), self.q, k)
-        eigvals, eigvecs = ln.eig(T)
+
+        # find eigenvectors and eigenvalues of T
+        # eigvals, eigvecs = ln.eig(T)
+        eigvals, eigvecs = self.eig_qr(T, n_iter=1)
 
         # `eig()` returns unordered eigenvalues,
         # so the top-r eigenvectors should be picked carefully
@@ -128,3 +131,37 @@ class SingularSpectrumTransformation:
             beta0 = beta1
 
         return T
+
+    def eig_qr(self, T, n_iter=-1, tol=1e-3):
+        """Find eigenvalues and eigenvectors of given symmetric (tridiagonal) matrix T.
+
+        http://web.csulb.edu/~tgao/math423/s94.pdf
+        http://stats.stackexchange.com/questions/20643/finding-matrix-eigenvectors-using-qr-decomposition
+
+        TODO: Efficiency improvement (e.g. each QR decomposition)
+
+        Args:
+            T (numpy array): Target tridiagonal matrix.
+            n_iter (int): If it is greater than zero, repeat QR decomposition `n_iter` times.
+            tol (float): If `n_iter` is not greater than zero, repeat QR decomposition
+                until the target matrix converges to diagonal matrix (i.e. all off-diagonal elements are less than `tol`).
+
+        Returns:
+            (numpy array) Estimated eigenvalues of T.
+            (numpy array) Estimated eigenvectors of T.
+
+        """
+        eigvecs = np.identity(T.shape[0])
+
+        if n_iter > 0:
+            for i in range(n_iter):
+                Q, R = ln.qr(T)
+                T = np.dot(R, Q)
+                eigvecs = np.dot(eigvecs, Q)
+        else:
+            while not np.all((T - np.diag(np.diag(T)) < tol)):
+                Q, R = ln.qr(T)
+                T = np.dot(R, Q)
+                eigvecs = np.dot(eigvecs, Q)
+
+        return np.diag(T), eigvecs
