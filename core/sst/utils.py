@@ -60,8 +60,6 @@ def tridiag_eig(T, n_iter=1, tol=1e-3):
     http://web.csulb.edu/~tgao/math423/s94.pdf
     http://stats.stackexchange.com/questions/20643/finding-matrix-eigenvectors-using-qr-decomposition
 
-    TODO: Efficiency improvement (e.g. each QR decomposition)
-
     Args:
         T (numpy array): Target tridiagonal matrix.
         n_iter (int): Repeat QR decomposition `n_iter` times.
@@ -75,7 +73,7 @@ def tridiag_eig(T, n_iter=1, tol=1e-3):
     eigvecs = np.identity(T.shape[0])
 
     for i in range(n_iter):
-        Q, R = ln.qr(T)
+        Q, R = tridiag_qr(T)
         T = np.dot(R, Q)
         eigvecs = np.dot(eigvecs, Q)
 
