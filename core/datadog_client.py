@@ -1,3 +1,4 @@
+import re
 from datadog import initialize, api
 
 from logging import getLogger
@@ -30,9 +31,13 @@ class DatadogClient:
         series = []
 
         for d in j['series']:
+            sre = re.search(',?host:([^,\}]+)', d['scope'])
+            host = '*' if sre is None else sre.group(1)
+
             # p = [ timestamp, value ]
             series += [{'src_metric': d['metric'],
                         'scope': d['scope'],
+                        'host': host,
                         'time': int(p[0]),
                         'raw_value': p[1]
                         } for p in d['pointlist']]

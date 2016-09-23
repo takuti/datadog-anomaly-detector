@@ -107,4 +107,5 @@ class Detector:
                 'metric_change': 'changefinder.change.' + s['dst_metric'],
                 'score_change': score_change,
                 'scope': s['scope'],
+                'host': s['host'],
                 'time': int(s['time'] / 1000)}  # same as Ruby's unix time
