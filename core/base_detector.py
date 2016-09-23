@@ -21,10 +21,9 @@ class Detector:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def __init__(self, fluent_tag_prefix):
-        self.ini_path = os.getcwd() + '/config/datadog.ini'
-
+    def __init__(self, fluent_tag_prefix, inifile_path):
         self.fluent_logger = sender.FluentSender(fluent_tag_prefix)
+        self.inifile_path = inifile_path
 
         self.dd = DatadogClient(app_key=os.environ['DD_APP_KEY'],
                                 api_key=os.environ['DD_API_KEY'])
@@ -45,7 +44,7 @@ class Detector:
 
     def load_dd_config(self):
         parser = configparser.ConfigParser()
-        parser.read(self.ini_path)
+        parser.read(self.inifile_path)
 
         dd_section_names = [s for s in parser.sections()
                             if re.match('^datadog\..*$', s) is not None]

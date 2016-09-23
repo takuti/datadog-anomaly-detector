@@ -1,3 +1,5 @@
+import sys
+import argparse
 import time
 import configparser
 from daemon import runner
@@ -9,15 +11,15 @@ from core.slack_client import SlackClient
 
 class ChangeFinderDaemon(Detector):
 
-    def __init__(self):
-        super().__init__('changefinder')
+    def __init__(self, inifile_path, pidfile_path):
+        super().__init__('changefinder', inifile_path)
 
         parser = configparser.ConfigParser()
-        parser.read(self.ini_path)
+        parser.read(self.inifile_path)
         self.stdin_path = '/dev/null'
         self.stdout_path = '/dev/null'
         self.stderr_path = '/dev/null'
-        self.pidfile_path = parser['general'].get('pidfile_path')
+        self.pidfile_path = pidfile_path
         self.pidfile_timeout = 5
 
         self.dd_api_interval = int(parser['general'].get('interval'))
@@ -70,14 +72,30 @@ class ChangeFinderDaemon(Detector):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Call a daemon runner.')
+
+    actions = ['start', 'stop', 'restart']
+    parser.add_argument('action', choices=actions, help='start | stop | restart')
+
+    parser.add_argument('--inifile_path', help='filepath to a config file')
+    parser.add_argument('--pidfile_path', help='filepath to a PID file')
+    parser.add_argument('--logfile_path', help='filepath to a config file')
+
+    args = parser.parse_args()
+
+    if sys.argv[1] not in actions:
+        print('Error: 1st argument must be one of [start, stop, restart].')
+        sys.exit(1)
+
     logger = getLogger('ChangeFinder')
     logger.setLevel(INFO)
-    handler = FileHandler('/var/log/changefinder.log')
+    handler = FileHandler(args.logfile_path)
     handler.setFormatter(Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     handler.setLevel(INFO)
     logger.addHandler(handler)
 
-    daemon_runner = runner.DaemonRunner(ChangeFinderDaemon())
+    app = ChangeFinderDaemon(args.inifile_path, args.pidfile_path)
+    daemon_runner = runner.DaemonRunner(app)
 
     if daemon_runner.action == 'start':
         logger.info('Start running a daemon')
