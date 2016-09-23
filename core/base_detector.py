@@ -106,4 +106,5 @@ class Detector:
                 'score_outlier': score_outlier,
                 'metric_change': 'changefinder.change.' + s['dst_metric'],
                 'score_change': score_change,
+                'scope': s['scope'],
                 'time': int(s['time'] / 1000)}  # same as Ruby's unix time
