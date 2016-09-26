@@ -15,13 +15,14 @@ except ImportError:
 @click.option('--start', prompt='Start', help='Datetime starting relay from.')
 @click.option('--end', prompt='End', help='Datetime starting relay to.')
 @click.option('--timezone', default='UTC', help='Timezone of the datetime.')
-def replay(start, end, timezone):
+@click.option('--config', '-f', default='config/datadog.ini', help='Path to config file.')
+def replay(start, end, timezone, config):
     time_start = str2timestamp(start, timezone)
     time_end = str2timestamp(end, timezone)
 
     assert (time_end - time_start <= 60 * 60 * 24), 'Time range must be smaller than 24 hours'
 
-    Detector('replay.changefinder.replay').query(time_start, time_end)
+    Detector('replay.changefinder.replay', config).query(time_start, time_end)
 
 
 if __name__ == '__main__':

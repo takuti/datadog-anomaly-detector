@@ -15,7 +15,7 @@ except ImportError:
 class TestDetector(Detector):
 
     def __init__(self):
-        super().__init__('changefinder')
+        super().__init__('changefinder', 'config/datadog.ini')
 
 
 class BaseDetectorTestCase(TestCase):
