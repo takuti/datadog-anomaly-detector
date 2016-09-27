@@ -26,11 +26,11 @@ case "$1" in
   stop)
     echo "Stopping server"
     # Stop the daemon
-    ~/.pyenv/shims/python /home/ubuntu/datadog-anomaly-detector/daemonizer.py stop ${CF_DAEMON_ARGS}
+    ~/.pyenv/shims/python /usr/share/datadog-anomaly-detector/daemonizer.py stop ${CF_DAEMON_ARGS}
     ;;
   restart)
     echo "Restarting server"
-    ~/.pyenv/shims/python /home/ubuntu/datadog-anomaly-detector/daemonizer.py restart ${CF_DAEMON_ARGS}
+    ~/.pyenv/shims/python /usr/share/datadog-anomaly-detector/daemonizer.py restart ${CF_DAEMON_ARGS}
     ;;
   *)
     # Refuse to do other stuff

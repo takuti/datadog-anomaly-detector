@@ -5,10 +5,27 @@ env:
   - TRAVIS_PYTHON_VERSION="3.5"
 
 os: linux
+sudo: required
 dist: trusty
 
 before_install:
   - sudo apt-get update -qq
+  # td-agent and plugin setup
+  - curl -L https://toolbelt.treasuredata.com/sh/install-ubuntu-trusty-td-agent2.sh | sh
+  - git clone https://github.com/sowawa/fluent-plugin-slack.git $HOME/fluent-plugin-slack
+  - cd $HOME/fluent-plugin-slack && git checkout v0.6.4 && git am --signoff < $TRAVIS_BUILD_DIR/fluent-plugin-slack-with-dd.patch
+  - echo $TRAVIS_BUILD_DIR/td-agent.conf | sudo tee -a /etc/td-agent/td-agent.conf
+  # rbenv setup for jruby used by Norikra
+  - git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+  - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bash_profile
+  - echo 'eval "$(rbenv init -)"' >> ~/.bash_profile
+  - . ~/.bash_profile
+  - git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+  - rbenv install jruby-9.1.2.0
+  - rbenv rehash
+  - rbenv shell jruby-9.1.2.0
+  - java -version # make sure if Java version is 1.8
+  # anaconda (python) setup
   - sudo apt-get install -y libopenblas-dev
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -16,20 +33,38 @@ before_install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy nose
   - source activate test-environment
 
 install:
+  - sudo td-agent-gem install fluent-plugin-dd fluent-plugin-record-reformer fluent-plugin-norikra
+  - sudo td-agent-gem install fluent-plugin-slack -v 0.6.4
+  - gem install norikra
+  - gem install norikra-udf-dateformat
   - pip install click datadog fluent_logger pytz tzlocal slackweb
 
 before_script:
+  - sudo cp $HOME/fluent-plugin-slack/lib/fluent/plugin/out_slack.rb /opt/td-agent/embedded/lib/ruby/gems/*/gems/fluent-plugin-slack-0.6.4/lib/fluent/plugin/out_slack.rb
+  - sudo mkdir /etc/changefinder /var/run/changefinder /var/log/changefinder
+  - cd $TRAVIS_BUILD_DIR
   - mv config/example.ini config/datadog.ini
+  - sudo cp config/datadog.ini /etc/changefinder/datadog.ini
+  - sudo cp changefinder.sh /etc/init.d/changefinder
+  - sudo ln -s $TRAVIS_BUILD_DIR /usr/share/datadog-anomaly-detector
+  - sudo ln -s /home/travis/.pyenv /root/.pyenv
 
 script:
   - nosetests core/tests
   - nosetests cli/tests
+
+after_script:
+  - sudo /etc/init.d/td-agent restart
+  - sudo /etc/init.d/td-agent status
+  - norikra start --stats=/etc/norikra/norikra.json -l /var/log/norikra -Xmx2g --daemonize
+  - sudo service changefinder start
+  - sudo service changefinder stop
+  - norikra stop
+  - sudo /etc/init.d/td-agent stop
 
 notifications:
   email: false
