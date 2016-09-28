@@ -48,7 +48,7 @@ class ChangeFinderDaemon(Detector):
             try:
                 # incorporate new queries which were inserted during the interval
                 self.load_dd_config()
-                logger.info(self.dd_sections)
+                logger.info('Monitoring %d metrics' % len(self.dd_sections))
 
                 self.query(start, end)
 

@@ -86,6 +86,8 @@ class Detector:
             self.__handle_series(section_name, series)
 
     def __handle_series(self, section_name, series):
+        start = time.clock()
+
         for s in series:
             s['raw_value'] = 0.0 if s['raw_value'] is None else s['raw_value']
             score_outlier, score_change = self.dd_sections[section_name]['cf'].update(s['raw_value'])
@@ -95,8 +97,12 @@ class Detector:
             record = self.__get_record(s, score_outlier, score_change)
 
             if not self.fluent_logger.emit(s['dst_metric'], record):
-                logger.error('fluent-logger: ' + str(self.fluent_logger.last_error))
+                err = str(self.fluent_logger.last_error)
+                logger.error('fluent-logger failed to emit records for [%s] (%s)' % (section_name, err))
                 self.fluent_logger.clear_last_error()
+                break
+
+        logger.info('Finish emitting %d records for [%s] (%.3f sec.)' % (len(series), section_name, time.clock() - start))
 
     def __get_record(self, s, score_outlier, score_change):
         return {'metric': s['src_metric'],
