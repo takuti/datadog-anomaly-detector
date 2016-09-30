@@ -1,6 +1,5 @@
 config/datadog.ini
 
-data/
 notebook/
 
 *.log
