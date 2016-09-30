@@ -21,27 +21,22 @@ before_install:
   - echo 'eval "$(rbenv init -)"' >> ~/.bash_profile
   - . ~/.bash_profile
   - git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
-  - rbenv install jruby-9.1.2.0
+  - rbenv install jruby-1.7.20
   - rbenv rehash
-  - rbenv shell jruby-9.1.2.0
+  - rbenv shell jruby-1.7.20
   - java -version # make sure if Java version is 1.8
   # anaconda (python) setup
   - sudo apt-get install -y libopenblas-dev
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy nose
-  - source activate test-environment
+  - sudo which python && sudo python --version
 
 install:
   - sudo td-agent-gem install fluent-plugin-dd fluent-plugin-record-reformer fluent-plugin-norikra
   - sudo td-agent-gem install fluent-plugin-slack -v 0.6.4
-  - gem install norikra
+  - gem install sinatra
+  - gem install norikra -v 1.4.0
   - gem install norikra-udf-dateformat
-  - pip install click datadog fluent_logger pytz tzlocal slackweb
+  - sudo pip install -r requirements.txt
+  - sudo pip install nose
 
 before_script:
   - sudo cp $HOME/fluent-plugin-slack/lib/fluent/plugin/out_slack.rb /opt/td-agent/embedded/lib/ruby/gems/*/gems/fluent-plugin-slack-0.6.4/lib/fluent/plugin/out_slack.rb
@@ -51,11 +46,10 @@ before_script:
   - sudo cp config/datadog.ini /etc/changefinder/datadog.ini
   - sudo cp changefinder.sh /etc/init.d/changefinder
   - sudo ln -s $TRAVIS_BUILD_DIR /usr/share/datadog-anomaly-detector
-  - sudo ln -s /home/travis/.pyenv /root/.pyenv
 
 script:
-  - nosetests core/tests
-  - nosetests cli/tests
+  - sudo nosetests core/tests
+  - sudo nosetests cli/tests
 
 after_script:
   - sudo /etc/init.d/td-agent restart
